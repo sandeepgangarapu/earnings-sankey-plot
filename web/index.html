@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Turn public SEC earnings data into clear, consistent Sankey diagrams.">
+  <title>Earnings Sankey</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Earnings Sankey home">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span>Earnings Sankey</span>
+    </a>
+    <a class="repo-link" href="https://github.com/sandeepgangarapu/earnings-sankey-plot" target="_blank" rel="noreferrer">GitHub</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Public filings → one visual language</p>
+      <h1>See where the money goes.</h1>
+      <p class="intro">Enter a U.S. public-company ticker. The app reads structured SEC filing data, maps company-specific XBRL tags to a common income-statement model, and draws a consistent Sankey.</p>
+    </section>
+
+    <section class="workspace" aria-label="Sankey generator">
+      <form id="generator-form" class="controls">
+        <div class="field ticker-field">
+          <label for="ticker">Ticker</label>
+          <input id="ticker" name="ticker" autocomplete="off" maxlength="10" placeholder="AAPL" required>
+        </div>
+        <div class="field">
+          <label for="fiscal-year">Fiscal year</label>
+          <input id="fiscal-year" name="fiscal-year" inputmode="numeric" pattern="[0-9]{4}" placeholder="Latest">
+        </div>
+        <div class="field">
+          <label for="period">Period</label>
+          <select id="period" name="period">
+            <option value="">Latest</option>
+            <option>Q1</option>
+            <option>Q2</option>
+            <option>Q3</option>
+            <option>FY</option>
+          </select>
+        </div>
+        <div class="field user-agent-field">
+          <label for="user-agent">SEC identity</label>
+          <input id="user-agent" name="user-agent" autocomplete="email" placeholder="Your Name you@example.com" required>
+          <small>Sent only to SEC.gov as its fair-access policy requires; this app does not save it.</small>
+        </div>
+        <div class="actions">
+          <button class="primary" type="submit">Generate Sankey</button>
+          <button class="secondary" id="sample-button" type="button">View example</button>
+        </div>
+        <details class="override-panel">
+          <summary>Add company-specific segment detail</summary>
+          <p>Optional JSON can replace normalized fields such as <code>revenue_streams</code>, <code>cost_of_revenue_items</code>, or <code>operating_expenses</code>.</p>
+          <textarea id="override" rows="7" spellcheck="false" placeholder='{"revenue_streams":[{"name":"Products","value":1000000000}]}'></textarea>
+        </details>
+      </form>
+
+      <section class="result" aria-live="polite">
+        <div class="result-toolbar" id="result-toolbar" hidden>
+          <div>
+            <span class="status-dot" aria-hidden="true"></span>
+            <span id="result-meta"></span>
+          </div>
+          <div class="download-actions">
+            <a id="source-link" target="_blank" rel="noreferrer" hidden>Source filing</a>
+            <button id="download-svg" type="button">SVG</button>
+            <button id="download-json" type="button">JSON</button>
+            <button id="download-html" type="button">HTML</button>
+          </div>
+        </div>
+        <div class="empty-state" id="empty-state">
+          <div class="mini-flow" aria-hidden="true">
+            <i></i><span></span><b></b>
+          </div>
+          <h2>Your chart will appear here</h2>
+          <p>Use live SEC data or open the bundled Alphabet example.</p>
+        </div>
+        <div class="loading" id="loading" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <p>Reading and normalizing the filing…</p>
+        </div>
+        <div class="error" id="error" role="alert" hidden></div>
+        <div class="chart-shell" id="chart-shell" hidden></div>
+        <details class="notes" id="notes-panel" hidden>
+          <summary>Normalization notes</summary>
+          <ul id="notes-list"></ul>
+        </details>
+      </section>
+    </section>
+
+    <section class="method">
+      <article><span>01</span><h2>Fetch</h2><p>Resolve the ticker and retrieve public Company Facts JSON from SEC EDGAR.</p></article>
+      <article><span>02</span><h2>Normalize</h2><p>Select the correct filing duration and map varying US-GAAP tags into one schema.</p></article>
+      <article><span>03</span><h2>Balance</h2><p>Reconcile revenue, costs, profit, tax, and net income so every flow tells the same story.</p></article>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built from public filing data. Always review the linked filing before making an investment decision.</p>
+  </footer>
+  <script src="/app.js" defer></script>
+</body>
+</html>
+

@@ -1,0 +1,50 @@
+{
+  "ticker": "GOOGL",
+  "company": "Alphabet",
+  "fiscal_year": 2026,
+  "period": "Q1",
+  "revenue": 109900000000,
+  "cost_of_revenue": 41300000000,
+  "gross_profit": 68600000000,
+  "operating_expenses_total": 28900000000,
+  "operating_income": 39700000000,
+  "other_income": 37700000000,
+  "pretax_income": 77400000000,
+  "income_tax": 14800000000,
+  "net_income": 62600000000,
+  "filed_date": null,
+  "accession": null,
+  "source_url": "https://www.sankeyart.com/sankeys/public/166394/",
+  "revenue_streams": [
+    {"name": "Search advertising", "value": 60400000000, "yoy_percent": 19},
+    {"name": "YouTube", "value": 9900000000, "yoy_percent": 11},
+    {"name": "Google Network", "value": 7000000000, "yoy_percent": -4},
+    {"name": "Play Store & other", "value": 12400000000, "yoy_percent": 19},
+    {"name": "Google Cloud", "value": 20000000000, "yoy_percent": 63},
+    {"name": "Other revenue", "value": 200000000, "yoy_percent": -67}
+  ],
+  "cost_of_revenue_items": [
+    {"name": "Content, data centers & other", "value": 26000000000, "yoy_percent": 15},
+    {"name": "Traffic acquisition costs", "value": 15200000000, "yoy_percent": 11},
+    {"name": "Other cost of revenue", "value": 100000000}
+  ],
+  "operating_expenses": [
+    {"name": "R&D", "value": 17000000000, "yoy_percent": 26},
+    {"name": "Sales & marketing", "value": 7600000000, "yoy_percent": 23},
+    {"name": "General & administrative", "value": 4300000000, "yoy_percent": 21}
+  ],
+  "yoy": {
+    "revenue": 22,
+    "cost_of_revenue": 14,
+    "gross_profit": 27,
+    "operating_expenses_total": 24,
+    "operating_income": 30,
+    "other_income": 237,
+    "pretax_income": 65,
+    "income_tax": 105,
+    "net_income": 81
+  },
+  "notes": [
+    "Bundled visual reference data; live runs use SEC Company Facts and link to the source filing."
+  ]
+}
