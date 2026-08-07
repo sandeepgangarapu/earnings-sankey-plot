@@ -32,6 +32,8 @@ class SECClient:
     COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
     _cache: dict[str, tuple[float, Any]] = {}
     _cache_lock = threading.Lock()
+    _request_lock = threading.Lock()
+    _last_request = 0.0
 
     def __init__(
         self,
@@ -51,8 +53,6 @@ class SECClient:
         self.timeout = timeout
         self.min_request_interval = min_request_interval
         self.cache_seconds = cache_seconds
-        self._last_request = 0.0
-        self._request_lock = threading.Lock()
 
     def _get_json(self, url: str) -> Any:
         now = time.monotonic()
@@ -61,8 +61,9 @@ class SECClient:
             if cached and now - cached[0] < self.cache_seconds:
                 return cached[1]
 
-        with self._request_lock:
-            delay = self.min_request_interval - (time.monotonic() - self._last_request)
+        client_type = type(self)
+        with client_type._request_lock:
+            delay = self.min_request_interval - (time.monotonic() - client_type._last_request)
             if delay > 0:
                 time.sleep(delay)
             request = urllib.request.Request(
@@ -82,7 +83,7 @@ class SECClient:
             except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
                 raise SECError(f"Could not retrieve SEC data from {url}: {exc}") from exc
             finally:
-                self._last_request = time.monotonic()
+                client_type._last_request = time.monotonic()
 
         with self._cache_lock:
             self._cache[url] = (time.monotonic(), data)

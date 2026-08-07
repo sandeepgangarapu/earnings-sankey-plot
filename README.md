@@ -4,6 +4,10 @@ Turn public SEC earnings data into clear, consistent income-statement Sankey dia
 
 ![Alphabet example Sankey](docs/preview.svg)
 
+The hosted app is available at
+[earnings.sandeepgangarapu.com](https://earnings.sandeepgangarapu.com). It may
+take a few seconds to start after a period without traffic.
+
 The project fetches structured Company Facts from SEC EDGAR, selects the correct filing duration, maps company-specific US-GAAP concepts into a common schema, reconciles the accounting flows, and produces a polished SVG/HTML chart. It includes a local web app, CLI, editable JSON output, and an offline example.
 
 ## What works today
@@ -112,6 +116,16 @@ node --test tests/test_result_actions.mjs tests/test_app_controller.mjs
 ```
 
 GitHub Actions runs the Python and browser-controller unit suites plus an offline HTML/SVG smoke test on every push and pull request.
+
+## Deployment
+
+The public app runs from the container defined in `Dockerfile` using the Fly.io
+settings in `fly.toml`. The single Machine stops when idle, starts on the next
+request, and exposes a lightweight health check at `/healthz`.
+
+Successful `main` push test runs trigger `.github/workflows/fly-deploy.yml`.
+That workflow requires a deploy-scoped `FLY_API_TOKEN` repository secret; the
+token itself must never be committed.
 
 ## Data and design notes
 
