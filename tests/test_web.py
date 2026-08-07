@@ -75,6 +75,25 @@ class WebStateTests(unittest.TestCase):
             with self.subTest(element_id=element_id):
                 self.assertEqual(_computed_display(css, attributes), "none")
 
+    def test_generator_and_result_regions_have_accessible_context(self) -> None:
+        generator = self.parser.elements["generator-form"]
+        self.assertEqual(generator.get("aria-labelledby"), "generator-title")
+        self.assertIn("generator-title", self.parser.elements)
+
+        contact = self.parser.elements["user-agent"]
+        self.assertEqual(contact.get("aria-describedby"), "sec-contact-help")
+        self.assertIn("sec-contact-help", self.parser.elements)
+
+        result = self.parser.elements["result-workspace"]
+        self.assertEqual(result["aria-label"], "Chart workspace")
+
+        controller_ids = {
+            "generator-form", "sample-button", "empty-state", "loading", "error",
+            "chart-shell", "result-views", "result-toolbar", "result-meta",
+            "source-link", "notes-panel", "notes-list", "svg-source", "json-source",
+        }
+        self.assertTrue(controller_ids.issubset(self.parser.elements))
+
     def test_result_modes_are_accessible_views_not_download_controls(self) -> None:
         self.assertIn("result-mode-tabs", self.parser.elements)
         self.assertEqual(self.parser.elements["result-mode-tabs"]["role"], "tablist")

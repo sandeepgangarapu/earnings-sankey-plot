@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Turn public SEC earnings data into clear, consistent Sankey diagrams.">
+  <meta name="description" content="Turn a public-company SEC filing into a clear, comparable earnings Sankey.">
   <title>Earnings Sankey</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
@@ -13,60 +13,89 @@
       <span class="brand-mark" aria-hidden="true">S</span>
       <span>Earnings Sankey</span>
     </a>
-    <a class="repo-link" href="https://github.com/sandeepgangarapu/earnings-sankey-plot" target="_blank" rel="noreferrer">GitHub</a>
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="#method">How it works</a>
+      <a class="repo-link" href="https://github.com/sandeepgangarapu/earnings-sankey-plot" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
   </header>
 
   <main>
-    <section class="hero">
-      <p class="eyebrow">Public filings → one visual language</p>
-      <h1>See where the money goes.</h1>
-      <p class="intro">Enter a U.S. public-company ticker. The app reads structured SEC filing data, maps company-specific XBRL tags to a common income-statement model, and draws a consistent Sankey.</p>
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Built from public SEC filings</p>
+        <h1 id="page-title">Follow the money through an earnings report.</h1>
+        <p class="intro">Choose a U.S. public company. Earnings Sankey reads its filing and turns revenue, costs, and profit into one clear flow.</p>
+      </div>
+      <aside class="trust-note" aria-label="How results stay comparable">
+        <strong>Comparable by design</strong>
+        <span>Company-specific accounting tags are mapped into one consistent income-statement model.</span>
+      </aside>
     </section>
 
     <section class="workspace" aria-label="Sankey generator">
-      <form id="generator-form" class="controls">
+      <form id="generator-form" class="controls" aria-labelledby="generator-title">
+        <div class="form-heading">
+          <div>
+            <p class="form-kicker">New visualization</p>
+            <h2 id="generator-title">Create a chart</h2>
+          </div>
+          <span class="data-badge"><i aria-hidden="true"></i> Live SEC data</span>
+        </div>
+
         <div class="field ticker-field">
-          <label for="ticker">Ticker</label>
+          <div class="label-row">
+            <label for="ticker">Company ticker</label>
+            <span>Required</span>
+          </div>
           <input id="ticker" name="ticker" autocomplete="off" maxlength="10" placeholder="AAPL" required>
         </div>
-        <div class="field">
-          <label for="fiscal-year">Fiscal year</label>
-          <input id="fiscal-year" name="fiscal-year" inputmode="numeric" pattern="[0-9]{4}" placeholder="Latest">
+
+        <div class="field-row">
+          <div class="field">
+            <label for="fiscal-year">Fiscal year</label>
+            <input id="fiscal-year" name="fiscal-year" inputmode="numeric" pattern="[0-9]{4}" placeholder="Latest">
+          </div>
+          <div class="field">
+            <label for="period">Period</label>
+            <select id="period" name="period">
+              <option value="">Latest</option>
+              <option>Q1</option>
+              <option>Q2</option>
+              <option>Q3</option>
+              <option>FY</option>
+            </select>
+          </div>
         </div>
-        <div class="field">
-          <label for="period">Period</label>
-          <select id="period" name="period">
-            <option value="">Latest</option>
-            <option>Q1</option>
-            <option>Q2</option>
-            <option>Q3</option>
-            <option>FY</option>
-          </select>
-        </div>
+
         <div class="field user-agent-field">
-          <label for="user-agent">SEC identity</label>
-          <input id="user-agent" name="user-agent" autocomplete="email" placeholder="Your Name you@example.com" required>
-          <small>Sent only to SEC.gov as its fair-access policy requires; this app does not save it.</small>
+          <div class="label-row">
+            <label for="user-agent">SEC contact</label>
+            <span>Required by SEC.gov</span>
+          </div>
+          <input id="user-agent" name="user-agent" autocomplete="email" placeholder="Your name and email" aria-describedby="sec-contact-help" required>
+          <small id="sec-contact-help">SEC.gov asks automated tools to identify themselves. Your contact is sent only with this request and isn’t saved.</small>
         </div>
+
         <div class="actions">
-          <button class="primary" type="submit">Generate Sankey</button>
-          <button class="secondary" id="sample-button" type="button">View example</button>
+          <button class="primary" type="submit"><span>Build Sankey</span><span aria-hidden="true">→</span></button>
+          <button class="secondary" id="sample-button" type="button">Explore the Alphabet example</button>
         </div>
+
         <details class="override-panel">
-          <summary>Add company-specific segment detail</summary>
-          <p>Optional JSON can replace normalized fields such as <code>revenue_streams</code>, <code>cost_of_revenue_items</code>, or <code>operating_expenses</code>.</p>
-          <textarea id="override" rows="7" spellcheck="false" placeholder='{"revenue_streams":[{"name":"Products","value":1000000000}]}'></textarea>
+          <summary><span>Add segment detail</span><small>Optional</small></summary>
+          <p>Paste company-specific JSON to replace normalized revenue, cost, or operating-expense detail.</p>
+          <textarea id="override" rows="7" spellcheck="false" aria-label="Company-specific segment JSON" placeholder='{"revenue_streams":[{"name":"Products","value":1000000000}]}'></textarea>
         </details>
       </form>
 
-      <section class="result" aria-live="polite">
+      <section class="result" id="result-workspace" aria-live="polite" aria-label="Chart workspace">
         <div class="result-toolbar" id="result-toolbar" hidden>
           <div class="result-identity">
             <span class="status-dot" aria-hidden="true"></span>
             <span id="result-meta"></span>
           </div>
           <div class="result-navigation">
-            <a id="source-link" target="_blank" rel="noreferrer" hidden>Source filing</a>
+            <a id="source-link" target="_blank" rel="noreferrer" hidden>View source filing <span aria-hidden="true">↗</span></a>
             <div class="mode-tabs" id="result-mode-tabs" role="tablist" aria-label="Result view">
               <button id="mode-chart" type="button" role="tab" data-result-mode="chart" aria-controls="chart-panel" aria-selected="true">Chart</button>
               <button id="mode-svg" type="button" role="tab" data-result-mode="svg" aria-controls="svg-panel" aria-selected="false" tabindex="-1">SVG</button>
@@ -74,18 +103,30 @@
             </div>
           </div>
         </div>
+
         <div class="empty-state" id="empty-state">
-          <div class="mini-flow" aria-hidden="true">
-            <i></i><span></span><b></b>
+          <div class="empty-state-bar">
+            <span class="ready-state"><i aria-hidden="true"></i> Ready for a company</span>
+            <span>Chart preview</span>
           </div>
-          <h2>Your chart will appear here</h2>
-          <p>Use live SEC data or open the bundled Alphabet example.</p>
+          <div class="empty-state-body">
+            <div class="mini-flow" aria-hidden="true">
+              <i></i><span></span><b></b>
+            </div>
+            <h2>Your earnings flow will appear here</h2>
+            <p>Most filings take a few seconds to read and organize.</p>
+          </div>
         </div>
+
         <div class="loading" id="loading" hidden>
           <span class="spinner" aria-hidden="true"></span>
-          <p>Reading and normalizing the filing…</p>
+          <div>
+            <h2>Building the earnings flow</h2>
+            <p>Reading and organizing the SEC filing…</p>
+          </div>
         </div>
         <div class="error" id="error" role="alert" hidden></div>
+
         <div class="result-views" id="result-views" hidden>
           <section class="result-panel" id="chart-panel" role="tabpanel" data-result-panel="chart" aria-labelledby="mode-chart">
             <div class="view-actions" aria-label="Chart actions">
@@ -107,6 +148,7 @@
             </div>
             <div class="chart-shell" id="chart-shell"></div>
           </section>
+
           <section class="result-panel" id="svg-panel" role="tabpanel" data-result-panel="svg" aria-labelledby="mode-svg" hidden>
             <div class="view-actions" aria-label="SVG source actions">
               <span class="view-label">SVG source</span>
@@ -117,6 +159,7 @@
             </div>
             <pre class="code-preview" tabindex="0"><code id="svg-source"></code></pre>
           </section>
+
           <section class="result-panel" id="json-panel" role="tabpanel" data-result-panel="json" aria-labelledby="mode-json" hidden>
             <div class="view-actions" aria-label="JSON data actions">
               <span class="view-label">Normalized data</span>
@@ -129,22 +172,30 @@
           </section>
           <p class="action-status" id="action-status" role="status" aria-live="polite"></p>
         </div>
+
         <details class="notes" id="notes-panel" hidden>
-          <summary>Normalization notes</summary>
+          <summary>How this filing was normalized</summary>
           <ul id="notes-list"></ul>
         </details>
       </section>
     </section>
 
-    <section class="method">
-      <article><span>01</span><h2>Fetch</h2><p>Resolve the ticker and retrieve public Company Facts JSON from SEC EDGAR.</p></article>
-      <article><span>02</span><h2>Normalize</h2><p>Select the correct filing duration and map varying US-GAAP tags into one schema.</p></article>
-      <article><span>03</span><h2>Balance</h2><p>Reconcile revenue, costs, profit, tax, and net income so every flow tells the same story.</p></article>
+    <section class="method" id="method" aria-labelledby="method-title">
+      <div class="method-heading">
+        <p class="eyebrow">From filing to flow</p>
+        <h2 id="method-title">The accounting stays rigorous. The output gets easier to read.</h2>
+      </div>
+      <div class="method-steps">
+        <article><span>01</span><div><h3>Read the filing</h3><p>Pull the reported company facts from SEC EDGAR.</p></div></article>
+        <article><span>02</span><div><h3>Align the numbers</h3><p>Map company-specific tags into a consistent model.</p></div></article>
+        <article><span>03</span><div><h3>Trace the flow</h3><p>Show what came in, what went out, and what remained.</p></div></article>
+      </div>
     </section>
   </main>
 
   <footer>
-    <p>Built from public filing data. Always review the linked filing before making an investment decision.</p>
+    <p>Built from public filing data.</p>
+    <p>Review the linked filing before making an investment decision.</p>
   </footer>
   <script type="module" src="/app.js"></script>
 </body>
