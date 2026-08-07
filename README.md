@@ -108,9 +108,10 @@ tests/            Unit and render tests
 
 ```bash
 uv run python -m unittest discover -s tests -v
+node --test tests/test_result_actions.mjs tests/test_app_controller.mjs
 ```
 
-GitHub Actions runs the unit suite plus an offline HTML/SVG smoke test on every push and pull request.
+GitHub Actions runs the Python and browser-controller unit suites plus an offline HTML/SVG smoke test on every push and pull request.
 
 ## Data and design notes
 

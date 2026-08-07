@@ -188,12 +188,14 @@ function announce(message) {
 
 async function handleCopy(button, content, kind) {
   if (!state.result) return;
+  const resultAtStart = state.result;
   let copied = false;
   try {
     copied = await copyText(content(), { clipboard: navigator.clipboard, document });
   } catch {
     // Unexpected browser API failures use the same truthful failure feedback.
   }
+  if (state.result !== resultAtStart) return;
   clearTimeout(state.feedbackTimer);
   document.querySelectorAll('[data-copy-label]').forEach((item) => {
     item.textContent = item.dataset.copyLabel;

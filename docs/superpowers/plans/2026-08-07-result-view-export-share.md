@@ -121,7 +121,7 @@ Style selected/unselected tabs as a compact segmented control; style action butt
 
 - [ ] **Step 4: Run all automated verification**
 
-Run: `python -m unittest discover -s tests -v && node --test tests/test_result_actions.mjs && git diff --check`
+Run: `uv run python -m unittest discover -s tests -v && node --test tests/test_result_actions.mjs tests/test_app_controller.mjs && git diff --check`
 
 Expected: all Python and Node tests PASS and the diff check is empty.
 
