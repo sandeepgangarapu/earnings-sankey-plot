@@ -3,7 +3,9 @@ import {
   buildShareMetadata,
   buildSocialShareUrls,
   buildStandaloneHtml,
+  copyPngBlob,
   copyText,
+  renderSvgToPng,
   selectResultMode,
   serializeStatement,
   statementFilename,
@@ -29,8 +31,11 @@ const shareControl = document.querySelector('.share-control');
 const shareButton = document.querySelector('#share-button');
 const shareMenu = document.querySelector('#share-menu');
 const nativeShare = document.querySelector('#native-share');
+const downloadControl = document.querySelector('.download-control');
+const downloadButton = document.querySelector('#download-button');
+const downloadMenu = document.querySelector('#download-menu');
 const actionStatus = document.querySelector('#action-status');
-const state = { result: null, mode: 'chart', feedbackTimer: null };
+const state = { result: null, mode: 'chart', feedbackTimer: null, copyImageOperation: 0 };
 
 function setBusy(isBusy) {
   form.querySelectorAll('button').forEach((button) => { button.disabled = isBusy; });
@@ -59,9 +64,19 @@ function closeShareMenu({ restoreFocus = false } = {}) {
   if (restoreFocus && wasOpen) shareButton.focus();
 }
 
+function closeDownloadMenu({ restoreFocus = false } = {}) {
+  const wasOpen = !downloadMenu.hidden;
+  downloadMenu.hidden = true;
+  downloadButton.setAttribute('aria-expanded', 'false');
+  if (restoreFocus && wasOpen) downloadButton.focus();
+}
+
 function activateMode(mode, { focus = false } = {}) {
   state.mode = selectResultMode(mode, modeTabs, resultPanels);
-  if (state.mode !== 'chart') closeShareMenu();
+  if (state.mode !== 'chart') {
+    closeShareMenu();
+    closeDownloadMenu();
+  }
   if (focus) document.querySelector(`[data-result-mode="${state.mode}"]`)?.focus();
 }
 
@@ -84,11 +99,9 @@ function safeSourceUrl(value) {
 
 function showResult(result) {
   state.result = result;
+  state.copyImageOperation += 1;
   clearTimeout(state.feedbackTimer);
-  document.querySelectorAll('[data-copy-label]').forEach((item) => {
-    item.textContent = item.dataset.copyLabel;
-    delete item.dataset.copyLabel;
-  });
+  restoreCopyLabels();
   setBusy(false);
   errorBox.hidden = true;
   emptyState.hidden = true;
@@ -99,6 +112,7 @@ function showResult(result) {
   toolbar.hidden = false;
   actionStatus.textContent = '';
   closeShareMenu();
+  closeDownloadMenu();
   activateMode('chart');
   const statement = result.statement;
   resultMeta.textContent = `${statement.ticker} · ${statement.period} FY${statement.fiscal_year}${statement.filed_date ? ` · filed ${statement.filed_date}` : ''}`;
@@ -157,7 +171,10 @@ sampleButton.addEventListener('click', async () => {
 });
 
 function download(content, type, name) {
-  const blob = new Blob([content], { type });
+  saveBlob(new Blob([content], { type }), name);
+}
+
+function saveBlob(blob, name) {
   const anchor = document.createElement('a');
   anchor.href = URL.createObjectURL(blob);
   anchor.download = name;
@@ -180,10 +197,42 @@ document.querySelector('#download-html').addEventListener('click', () => {
   if (!state.result) return;
   download(buildStandaloneHtml(state.result), 'text/html', statementFilename(state.result.statement, 'html'));
 });
+document.querySelector('#download-png').addEventListener('click', async () => {
+  if (!state.result) return;
+  const resultAtStart = state.result;
+  closeDownloadMenu({ restoreFocus: true });
+  announce('Preparing PNG…');
+  try {
+    const png = await renderSvgToPng(state.result.svg, {
+      Blob,
+      Image,
+      document,
+      URL,
+    }, 2);
+    if (state.result !== resultAtStart) return;
+    saveBlob(png, statementFilename(state.result.statement, 'png'));
+    announce('PNG downloaded.');
+  } catch {
+    if (state.result === resultAtStart) announce('The chart couldn’t be rendered as a PNG.');
+  }
+});
 
 function announce(message) {
   actionStatus.textContent = '';
   requestAnimationFrame(() => { actionStatus.textContent = message; });
+}
+
+function restoreCopyLabels() {
+  document.querySelectorAll('[data-copy-label]').forEach((item) => {
+    item.textContent = item.dataset.copyLabel;
+    delete item.dataset.copyLabel;
+  });
+}
+
+function showCopiedFeedback(button, kind) {
+  button.textContent = 'Copied';
+  announce(`${kind} copied to the clipboard.`);
+  state.feedbackTimer = setTimeout(() => restoreCopyLabels(), 1800);
 }
 
 async function handleCopy(button, content, kind) {
@@ -197,30 +246,46 @@ async function handleCopy(button, content, kind) {
   }
   if (state.result !== resultAtStart) return;
   clearTimeout(state.feedbackTimer);
-  document.querySelectorAll('[data-copy-label]').forEach((item) => {
-    item.textContent = item.dataset.copyLabel;
-    delete item.dataset.copyLabel;
-  });
+  restoreCopyLabels();
   if (!copied) {
     announce(`Couldn’t copy the ${kind}. Select it in the source view and copy manually.`);
     return;
   }
   button.dataset.copyLabel = button.textContent;
-  button.textContent = 'Copied';
-  announce(`${kind} copied to the clipboard.`);
-  state.feedbackTimer = setTimeout(() => {
-    if (button.dataset.copyLabel) {
-      button.textContent = button.dataset.copyLabel;
-      delete button.dataset.copyLabel;
-    }
-  }, 1800);
+  showCopiedFeedback(button, kind);
 }
 
-document.querySelector('#copy-svg-chart').addEventListener('click', (event) => {
-  handleCopy(event.currentTarget, () => state.result.svg, 'SVG');
+document.querySelector('#copy-image').addEventListener('click', async (event) => {
+  if (!state.result) return;
+  const button = event.currentTarget;
+  const resultAtStart = state.result;
+  const operation = ++state.copyImageOperation;
+  const isCurrentOperation = () => state.result === resultAtStart && state.copyImageOperation === operation;
+  clearTimeout(state.feedbackTimer);
+  restoreCopyLabels();
+  button.dataset.copyLabel = button.textContent;
+  button.textContent = 'Copying…';
+  try {
+    const png = renderSvgToPng(state.result.svg, { Blob, Image, document, URL }, 2);
+    png.catch(() => {});
+    const copied = await copyPngBlob(png, {
+      ClipboardItem: typeof ClipboardItem === 'function' ? ClipboardItem : null,
+      clipboard: navigator.clipboard,
+    });
+    if (!isCurrentOperation()) return;
+    if (copied) {
+      showCopiedFeedback(button, 'Chart image');
+      return;
+    }
+  } catch {
+    // The action below reports the same useful fallback for render and permission failures.
+  }
+  if (!isCurrentOperation()) return;
+  restoreCopyLabels();
+  announce('Couldn’t copy the chart image. Use Download → Download PNG instead.');
 });
 document.querySelector('#copy-svg-source').addEventListener('click', (event) => {
-  handleCopy(event.currentTarget, () => state.result.svg, 'SVG');
+  handleCopy(event.currentTarget, () => state.result.svg, 'SVG code');
 });
 document.querySelector('#copy-json').addEventListener('click', (event) => {
   handleCopy(event.currentTarget, () => serializeStatement(state.result.statement), 'JSON');
@@ -244,12 +309,25 @@ modeTabs.forEach((tab) => {
 
 shareButton.addEventListener('click', () => {
   const willOpen = shareMenu.hidden;
+  closeDownloadMenu();
   shareMenu.hidden = !willOpen;
   shareButton.setAttribute('aria-expanded', String(willOpen));
   if (willOpen) {
     const firstAction = nativeShare.hidden ? document.querySelector('#share-linkedin') : nativeShare;
     firstAction.focus();
   }
+});
+
+downloadButton.addEventListener('click', () => {
+  const willOpen = downloadMenu.hidden;
+  closeShareMenu();
+  downloadMenu.hidden = !willOpen;
+  downloadButton.setAttribute('aria-expanded', String(willOpen));
+  if (willOpen) document.querySelector('#download-png').focus();
+});
+
+document.querySelectorAll('#download-menu button').forEach((item) => {
+  item.addEventListener('click', () => closeDownloadMenu({ restoreFocus: true }));
 });
 
 document.querySelectorAll('#share-menu a').forEach((link) => {
@@ -279,8 +357,10 @@ nativeShare.addEventListener('click', async () => {
 
 document.addEventListener('click', (event) => {
   if (!shareMenu.hidden && !shareControl.contains(event.target)) closeShareMenu();
+  if (!downloadMenu.hidden && !downloadControl.contains(event.target)) closeDownloadMenu();
 });
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !shareMenu.hidden) closeShareMenu({ restoreFocus: true });
+  if (event.key === 'Escape' && !downloadMenu.hidden) closeDownloadMenu({ restoreFocus: true });
 });

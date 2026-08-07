@@ -4,6 +4,10 @@ Turn public SEC earnings data into clear, consistent income-statement Sankey dia
 
 ![Alphabet example Sankey](docs/preview.svg)
 
+The hosted app is available at
+[earnings.sandeepgangarapu.com](https://earnings.sandeepgangarapu.com). It may
+take a few seconds to start after a period without traffic.
+
 The project fetches structured Company Facts from SEC EDGAR, selects the correct filing duration, maps company-specific US-GAAP concepts into a common schema, reconciles the accounting flows, and produces a polished SVG/HTML chart. It includes a local web app, CLI, editable JSON output, and an offline example.
 
 ## What works today
@@ -13,7 +17,7 @@ The project fetches structured Company Facts from SEC EDGAR, selects the correct
 - Automatic normalization of revenue, cost of revenue, gross profit, operating expenses, operating profit, other income/expense, pretax profit, tax, and net income
 - Automatic R&D, sales/marketing, G&A, or SG&A breakout when non-overlapping SEC facts are available
 - Same-period year-over-year changes
-- Chart, SVG-source, and normalized-JSON views with explicit download and clipboard actions
+- Chart, SVG-source, and normalized-JSON views with pasteable PNG images and explicit downloads
 - Native sharing plus ready-to-open LinkedIn, X, and Facebook share links
 - Manual JSON overrides for business-segment revenue and company-specific cost detail
 - Positive-profit and basic loss-making statement layouts
@@ -112,6 +116,16 @@ node --test tests/test_result_actions.mjs tests/test_app_controller.mjs
 ```
 
 GitHub Actions runs the Python and browser-controller unit suites plus an offline HTML/SVG smoke test on every push and pull request.
+
+## Deployment
+
+The public app runs from the container defined in `Dockerfile` using the Fly.io
+settings in `fly.toml`. The single Machine stops when idle, starts on the next
+request, and exposes a lightweight health check at `/healthz`.
+
+Successful `main` push test runs trigger `.github/workflows/fly-deploy.yml`.
+That workflow requires a deploy-scoped `FLY_API_TOKEN` repository secret; the
+token itself must never be committed.
 
 ## Data and design notes
 

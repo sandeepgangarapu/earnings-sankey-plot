@@ -69,7 +69,8 @@ class WebStateTests(unittest.TestCase):
     def test_hidden_result_states_and_panels_are_not_displayed(self) -> None:
         css = (ROOT / "web" / "styles.css").read_text()
 
-        for element_id in ("loading", "empty-state", "svg-panel", "json-panel", "share-menu"):
+        for element_id in ("loading", "empty-state", "svg-panel", "json-panel", "share-menu", "download-menu"):
+            self.assertIn(element_id, self.parser.elements)
             attributes = self.parser.elements[element_id]
             attributes["hidden"] = None
             with self.subTest(element_id=element_id):
@@ -124,12 +125,14 @@ class WebStateTests(unittest.TestCase):
 
     def test_result_actions_name_their_outcomes_and_share_destinations(self) -> None:
         expected_labels = {
+            "copy-image": "Copy image",
+            "download-button": "Download",
+            "download-png": "Download PNG",
             "download-svg-chart": "Download SVG",
             "download-html": "Download HTML",
-            "copy-svg-chart": "Copy SVG",
             "share-button": "Share",
             "download-svg-source": "Download SVG",
-            "copy-svg-source": "Copy SVG",
+            "copy-svg-source": "Copy SVG code",
             "download-json": "Download JSON",
             "copy-json": "Copy JSON",
             "native-share": "Share from device",
@@ -153,6 +156,14 @@ class WebStateTests(unittest.TestCase):
         self.assertIn("hidden", share_options)
         for element_id in ("native-share", "share-linkedin", "share-x", "share-facebook"):
             self.assertNotIn("role", self.parser.elements[element_id])
+
+        self.assertIn("download-button", self.parser.elements)
+        download_button = self.parser.elements["download-button"]
+        self.assertEqual(download_button["aria-expanded"], "false")
+        self.assertEqual(download_button["aria-controls"], "download-menu")
+        download_options = self.parser.elements["download-menu"]
+        self.assertEqual(download_options["aria-label"], "Download options")
+        self.assertIn("hidden", download_options)
 
 
 if __name__ == "__main__":

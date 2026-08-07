@@ -132,12 +132,18 @@
             <div class="view-actions" aria-label="Chart actions">
               <span class="view-label">Chart preview</span>
               <div class="action-buttons">
-                <button id="download-svg-chart" type="button">Download SVG</button>
-                <button id="download-html" type="button">Download HTML</button>
-                <button id="copy-svg-chart" type="button">Copy SVG</button>
-                <div class="share-control">
+                <button class="featured-action" id="copy-image" type="button">Copy image</button>
+                <div class="popover-control download-control">
+                  <button id="download-button" type="button" aria-expanded="false" aria-controls="download-menu">Download</button>
+                  <div class="action-menu" id="download-menu" aria-label="Download options" hidden>
+                    <button id="download-png" type="button">Download PNG</button>
+                    <button id="download-svg-chart" type="button">Download SVG</button>
+                    <button id="download-html" type="button">Download HTML</button>
+                  </div>
+                </div>
+                <div class="popover-control share-control">
                   <button id="share-button" type="button" aria-expanded="false" aria-controls="share-menu">Share</button>
-                  <div class="share-menu" id="share-menu" aria-label="Share options" hidden>
+                  <div class="action-menu" id="share-menu" aria-label="Share options" hidden>
                     <button id="native-share" type="button" hidden>Share from device</button>
                     <a id="share-linkedin" target="_blank" rel="noreferrer">LinkedIn</a>
                     <a id="share-x" target="_blank" rel="noreferrer">X</a>
@@ -154,7 +160,7 @@
               <span class="view-label">SVG source</span>
               <div class="action-buttons">
                 <button id="download-svg-source" type="button">Download SVG</button>
-                <button id="copy-svg-source" type="button">Copy SVG</button>
+                <button id="copy-svg-source" type="button">Copy SVG code</button>
               </div>
             </div>
             <pre class="code-preview" tabindex="0"><code id="svg-source"></code></pre>
