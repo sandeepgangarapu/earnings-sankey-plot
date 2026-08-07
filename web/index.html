@@ -61,15 +61,17 @@
 
       <section class="result" aria-live="polite">
         <div class="result-toolbar" id="result-toolbar" hidden>
-          <div>
+          <div class="result-identity">
             <span class="status-dot" aria-hidden="true"></span>
             <span id="result-meta"></span>
           </div>
-          <div class="download-actions">
+          <div class="result-navigation">
             <a id="source-link" target="_blank" rel="noreferrer" hidden>Source filing</a>
-            <button id="download-svg" type="button">SVG</button>
-            <button id="download-json" type="button">JSON</button>
-            <button id="download-html" type="button">HTML</button>
+            <div class="mode-tabs" id="result-mode-tabs" role="tablist" aria-label="Result view">
+              <button id="mode-chart" type="button" role="tab" data-result-mode="chart" aria-controls="chart-panel" aria-selected="true">Chart</button>
+              <button id="mode-svg" type="button" role="tab" data-result-mode="svg" aria-controls="svg-panel" aria-selected="false" tabindex="-1">SVG</button>
+              <button id="mode-json" type="button" role="tab" data-result-mode="json" aria-controls="json-panel" aria-selected="false" tabindex="-1">JSON</button>
+            </div>
           </div>
         </div>
         <div class="empty-state" id="empty-state">
@@ -84,7 +86,49 @@
           <p>Reading and normalizing the filing…</p>
         </div>
         <div class="error" id="error" role="alert" hidden></div>
-        <div class="chart-shell" id="chart-shell" hidden></div>
+        <div class="result-views" id="result-views" hidden>
+          <section class="result-panel" id="chart-panel" role="tabpanel" data-result-panel="chart" aria-labelledby="mode-chart">
+            <div class="view-actions" aria-label="Chart actions">
+              <span class="view-label">Chart preview</span>
+              <div class="action-buttons">
+                <button id="download-svg-chart" type="button">Download SVG</button>
+                <button id="download-html" type="button">Download HTML</button>
+                <button id="copy-svg-chart" type="button">Copy SVG</button>
+                <div class="share-control">
+                  <button id="share-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="share-menu">Share</button>
+                  <div class="share-menu" id="share-menu" role="menu" hidden>
+                    <button id="native-share" type="button" role="menuitem" hidden>Share from device</button>
+                    <a id="share-linkedin" role="menuitem" target="_blank" rel="noreferrer">LinkedIn</a>
+                    <a id="share-x" role="menuitem" target="_blank" rel="noreferrer">X</a>
+                    <a id="share-facebook" role="menuitem" target="_blank" rel="noreferrer">Facebook</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="chart-shell" id="chart-shell"></div>
+          </section>
+          <section class="result-panel" id="svg-panel" role="tabpanel" data-result-panel="svg" aria-labelledby="mode-svg" hidden>
+            <div class="view-actions" aria-label="SVG source actions">
+              <span class="view-label">SVG source</span>
+              <div class="action-buttons">
+                <button id="download-svg-source" type="button">Download SVG</button>
+                <button id="copy-svg-source" type="button">Copy SVG</button>
+              </div>
+            </div>
+            <pre class="code-preview" tabindex="0"><code id="svg-source"></code></pre>
+          </section>
+          <section class="result-panel" id="json-panel" role="tabpanel" data-result-panel="json" aria-labelledby="mode-json" hidden>
+            <div class="view-actions" aria-label="JSON data actions">
+              <span class="view-label">Normalized data</span>
+              <div class="action-buttons">
+                <button id="download-json" type="button">Download JSON</button>
+                <button id="copy-json" type="button">Copy JSON</button>
+              </div>
+            </div>
+            <pre class="code-preview" tabindex="0"><code id="json-source"></code></pre>
+          </section>
+          <p class="action-status" id="action-status" role="status" aria-live="polite"></p>
+        </div>
         <details class="notes" id="notes-panel" hidden>
           <summary>Normalization notes</summary>
           <ul id="notes-list"></ul>
@@ -102,7 +146,6 @@
   <footer>
     <p>Built from public filing data. Always review the linked filing before making an investment decision.</p>
   </footer>
-  <script src="/app.js" defer></script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>
-
