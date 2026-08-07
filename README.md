@@ -1,6 +1,6 @@
-# Earnings Sankey
+# Earnings Genie
 
-Turn public SEC earnings data into clear, consistent income-statement Sankey diagrams.
+Earnings Genie turns public SEC earnings data into clear, consistent income-statement Sankey diagrams.
 
 ![Alphabet example Sankey](docs/preview.svg)
 
@@ -13,13 +13,14 @@ The project fetches structured Company Facts from SEC EDGAR, selects the correct
 ## What works today
 
 - U.S. public-company tickers with structured 10-Q or 10-K Company Facts
+- Search by company name or ticker in the web app
 - Q1, Q2, Q3, and full-year periods
 - Automatic normalization of revenue, cost of revenue, gross profit, operating expenses, operating profit, other income/expense, pretax profit, tax, and net income
 - Automatic R&D, sales/marketing, G&A, or SG&A breakout when non-overlapping SEC facts are available
 - Same-period year-over-year changes
 - Chart, SVG-source, and normalized-JSON views with pasteable PNG images and explicit downloads
 - Native sharing plus ready-to-open LinkedIn, X, and Facebook share links
-- Manual JSON overrides for business-segment revenue and company-specific cost detail
+- CLI JSON overrides for business-segment revenue and company-specific cost detail
 - Positive-profit and basic loss-making statement layouts
 
 The renderer is dependency-free: it generates responsive SVG directly rather than relying on a charting service or JavaScript visualization library.
@@ -30,12 +31,12 @@ Python 3.10+ and [`uv`](https://docs.astral.sh/uv/) are the only requirements.
 
 ```bash
 uv sync
-uv run earnings-sankey-server --open
+SEC_USER_AGENT="Your Name you@example.com" uv run earnings-sankey-server --open
 ```
 
-Then open `http://127.0.0.1:8000`. Select **View example** to try the bundled chart without a network request.
+Then open `http://127.0.0.1:8000`. The form starts with Alphabet’s Q1 FY2026 values as an editable example. Search by company name or ticker, choose a fiscal year and period, and select **Visualize earnings**.
 
-For live SEC data, enter an SEC identity such as `Your Name you@example.com`. SEC asks automated clients to declare a name/company and contact email. The local app sends it only in the request header to SEC.gov and does not persist or log it.
+SEC asks automated clients to declare a name/company and contact email. The web server reads that identity from `SEC_USER_AGENT` and sends it only in request headers to SEC.gov; it is never exposed to visitors in HTML or JSON and is not persisted or logged. A hosted deployment must set the same environment variable or secret on the server.
 
 ## Use the CLI
 

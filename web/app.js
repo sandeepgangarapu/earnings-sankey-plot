@@ -10,9 +10,21 @@ import {
   serializeStatement,
   statementFilename,
 } from './result-actions.mjs';
+import {
+  fiscalYearChoices,
+  formatCompany,
+  moveCompanySelection,
+  rankCompanyMatches,
+  resolveCompanyTicker,
+} from './company-search.mjs';
 
 const form = document.querySelector('#generator-form');
-const sampleButton = document.querySelector('#sample-button');
+const companyControl = document.querySelector('.company-combobox');
+const companyInput = document.querySelector('#company-search');
+const companyOptions = document.querySelector('#company-options');
+const companyStatus = document.querySelector('#company-search-status');
+const tickerInput = document.querySelector('#ticker');
+const fiscalYear = document.querySelector('#fiscal-year');
 const emptyState = document.querySelector('#empty-state');
 const loading = document.querySelector('#loading');
 const errorBox = document.querySelector('#error');
@@ -35,7 +47,33 @@ const downloadControl = document.querySelector('.download-control');
 const downloadButton = document.querySelector('#download-button');
 const downloadMenu = document.querySelector('#download-menu');
 const actionStatus = document.querySelector('#action-status');
-const state = { result: null, mode: 'chart', feedbackTimer: null, copyImageOperation: 0 };
+const state = {
+  result: null,
+  mode: 'chart',
+  feedbackTimer: null,
+  copyImageOperation: 0,
+  companies: null,
+  companyPromise: null,
+  companyLoadFailed: false,
+  visibleCompanies: [],
+  activeCompanyIndex: -1,
+  selectedCompany: { ticker: 'GOOGL', name: 'Alphabet Inc.' },
+};
+
+function populateFiscalYears() {
+  const defaultYear = 2026;
+  const years = fiscalYearChoices(new Date().getFullYear());
+  fiscalYear.replaceChildren();
+  years.forEach((year) => {
+    const option = document.createElement('option');
+    option.value = String(year);
+    option.textContent = String(year);
+    fiscalYear.append(option);
+  });
+  fiscalYear.value = String(years.includes(defaultYear) ? defaultYear : new Date().getFullYear());
+}
+
+populateFiscalYears();
 
 function setBusy(isBusy) {
   form.querySelectorAll('button').forEach((button) => { button.disabled = isBusy; });
@@ -135,21 +173,142 @@ async function parseResponse(response) {
   return payload;
 }
 
+function closeCompanyOptions() {
+  companyOptions.hidden = true;
+  companyInput.setAttribute('aria-expanded', 'false');
+  companyInput.removeAttribute('aria-activedescendant');
+  state.activeCompanyIndex = -1;
+}
+
+function setActiveCompany(index) {
+  state.activeCompanyIndex = index;
+  Array.from(companyOptions.children).forEach((option, optionIndex) => {
+    option.setAttribute('aria-selected', String(optionIndex === index));
+  });
+  if (index < 0) {
+    companyInput.removeAttribute('aria-activedescendant');
+    return;
+  }
+  companyInput.setAttribute('aria-activedescendant', companyOptions.children[index].id);
+}
+
+function selectCompany(company) {
+  state.selectedCompany = company;
+  companyInput.value = formatCompany(company);
+  tickerInput.value = company.ticker;
+  companyStatus.textContent = `${company.name} selected.`;
+  closeCompanyOptions();
+}
+
+function renderCompanyOptions() {
+  if (!state.companies) return;
+  if (state.selectedCompany && companyInput.value === formatCompany(state.selectedCompany)) {
+    state.visibleCompanies = [];
+    companyOptions.replaceChildren();
+    closeCompanyOptions();
+    companyStatus.textContent = `${state.selectedCompany.name} selected.`;
+    return;
+  }
+  state.visibleCompanies = rankCompanyMatches(state.companies, companyInput.value);
+  state.activeCompanyIndex = -1;
+  companyOptions.replaceChildren();
+  state.visibleCompanies.forEach((company, index) => {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.id = `company-option-${index}`;
+    option.className = 'company-option';
+    option.dataset.ticker = company.ticker;
+    option.setAttribute('role', 'option');
+    option.setAttribute('aria-selected', 'false');
+
+    const name = document.createElement('span');
+    name.className = 'company-option-name';
+    name.textContent = company.name;
+    const ticker = document.createElement('span');
+    ticker.className = 'company-option-ticker';
+    ticker.textContent = company.ticker;
+    option.append(name, ticker);
+    option.addEventListener('click', () => selectCompany(company));
+    option.addEventListener('mouseenter', () => setActiveCompany(index));
+    companyOptions.append(option);
+  });
+
+  if (!state.visibleCompanies.length) {
+    closeCompanyOptions();
+    if (!state.companyLoadFailed) companyStatus.textContent = 'No matches. You can enter a ticker directly.';
+    return;
+  }
+  companyOptions.hidden = false;
+  companyInput.setAttribute('aria-expanded', 'true');
+  companyStatus.textContent = `${state.visibleCompanies.length} matching companies.`;
+}
+
+async function loadCompanies() {
+  if (state.companies) return state.companies;
+  if (!state.companyPromise) {
+    companyStatus.textContent = 'Loading companies…';
+    state.companyPromise = fetch('/api/companies')
+      .then(parseResponse)
+      .then((companies) => {
+        if (!Array.isArray(companies)) throw new Error('The company directory is unavailable.');
+        state.companies = companies;
+        return companies;
+      })
+      .catch(() => {
+        state.companyLoadFailed = true;
+        companyStatus.textContent = 'Company search is unavailable. Enter a ticker directly.';
+        return [];
+      });
+  }
+  return state.companyPromise;
+}
+
+async function refreshCompanyOptions() {
+  await loadCompanies();
+  renderCompanyOptions();
+}
+
+companyInput.addEventListener('focus', refreshCompanyOptions);
+companyInput.addEventListener('input', async () => {
+  state.selectedCompany = null;
+  tickerInput.value = '';
+  await refreshCompanyOptions();
+});
+companyInput.addEventListener('keydown', async (event) => {
+  if (event.key === 'Escape') {
+    closeCompanyOptions();
+    return;
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (companyOptions.hidden) await refreshCompanyOptions();
+    setActiveCompany(moveCompanySelection(
+      state.activeCompanyIndex,
+      event.key,
+      state.visibleCompanies.length,
+    ));
+    return;
+  }
+  if (event.key === 'Enter' && !companyOptions.hidden && state.activeCompanyIndex >= 0) {
+    event.preventDefault();
+    selectCompany(state.visibleCompanies[state.activeCompanyIndex]);
+  }
+});
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  const overrideText = document.querySelector('#override').value.trim();
-  let override = null;
-  if (overrideText) {
-    try { override = JSON.parse(overrideText); }
-    catch { showError('The segment override is not valid JSON.'); return; }
+  const ticker = resolveCompanyTicker(companyInput.value, state.selectedCompany);
+  if (!ticker) {
+    showError('Select a matching company or enter a valid ticker.');
+    return;
   }
-  const yearText = document.querySelector('#fiscal-year').value.trim();
+  tickerInput.value = ticker;
+  closeCompanyOptions();
+  const yearText = fiscalYear.value.trim();
   const request = {
-    ticker: document.querySelector('#ticker').value.trim().toUpperCase(),
+    ticker,
     fiscal_year: yearText ? Number(yearText) : null,
     period: document.querySelector('#period').value || null,
-    user_agent: document.querySelector('#user-agent').value.trim(),
-    override,
   };
   setBusy(true);
   try {
@@ -158,14 +317,6 @@ form.addEventListener('submit', async (event) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
-    showResult(await parseResponse(response));
-  } catch (error) { showError(error.message); }
-});
-
-sampleButton.addEventListener('click', async () => {
-  setBusy(true);
-  try {
-    const response = await fetch('/api/sample');
     showResult(await parseResponse(response));
   } catch (error) { showError(error.message); }
 });
@@ -356,6 +507,7 @@ nativeShare.addEventListener('click', async () => {
 });
 
 document.addEventListener('click', (event) => {
+  if (!companyOptions.hidden && !companyControl.contains(event.target)) closeCompanyOptions();
   if (!shareMenu.hidden && !shareControl.contains(event.target)) closeShareMenu();
   if (!downloadMenu.hidden && !downloadControl.contains(event.target)) closeDownloadMenu();
 });

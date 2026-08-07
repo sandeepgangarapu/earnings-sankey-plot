@@ -16,11 +16,26 @@ class _ElementsById(HTMLParser):
         super().__init__()
         self.elements: dict[str, dict[str, str | None]] = {}
         self.text: dict[str, str] = {}
+        self.document_title = ""
+        self.brand_attributes: dict[str, str | None] = {}
+        self.brand_text = ""
+        self.workspace_attributes: dict[str, str | None] = {}
         self._id_stack: list[str | None] = []
+        self._in_title = False
+        self._brand_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attributes = dict(attrs)
         element_id = attributes.get("id")
+        if tag == "title":
+            self._in_title = True
+        if tag == "a" and "brand" in (attributes.get("class") or "").split():
+            self.brand_attributes = attributes
+            self._brand_depth = 1
+        elif self._brand_depth:
+            self._brand_depth += 1
+        if tag == "section" and "workspace" in (attributes.get("class") or "").split():
+            self.workspace_attributes = attributes
         if tag not in {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"}:
             self._id_stack.append(element_id)
         if element_id:
@@ -28,10 +43,18 @@ class _ElementsById(HTMLParser):
             self.text[element_id] = ""
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "title":
+            self._in_title = False
+        if self._brand_depth:
+            self._brand_depth -= 1
         if self._id_stack:
             self._id_stack.pop()
 
     def handle_data(self, data: str) -> None:
+        if self._in_title:
+            self.document_title += data
+        if self._brand_depth:
+            self.brand_text += data
         for element_id in reversed(self._id_stack):
             if element_id:
                 self.text[element_id] += data
@@ -63,8 +86,9 @@ def _computed_display(css: str, attributes: dict[str, str | None]) -> str:
 
 class WebStateTests(unittest.TestCase):
     def setUp(self) -> None:
+        self.html = (ROOT / "web" / "index.html").read_text()
         self.parser = _ElementsById()
-        self.parser.feed((ROOT / "web" / "index.html").read_text())
+        self.parser.feed(self.html)
 
     def test_hidden_result_states_and_panels_are_not_displayed(self) -> None:
         css = (ROOT / "web" / "styles.css").read_text()
@@ -81,19 +105,62 @@ class WebStateTests(unittest.TestCase):
         self.assertEqual(generator.get("aria-labelledby"), "generator-title")
         self.assertIn("generator-title", self.parser.elements)
 
-        contact = self.parser.elements["user-agent"]
-        self.assertEqual(contact.get("aria-describedby"), "sec-contact-help")
-        self.assertIn("sec-contact-help", self.parser.elements)
+        company = self.parser.elements["company-search"]
+        self.assertEqual(company.get("role"), "combobox")
+        self.assertEqual(company.get("aria-controls"), "company-options")
+        self.assertEqual(company.get("aria-expanded"), "false")
+        self.assertEqual(company.get("aria-describedby"), "company-search-status")
+        self.assertEqual(self.parser.elements["company-options"].get("role"), "listbox")
 
         result = self.parser.elements["result-workspace"]
         self.assertEqual(result["aria-label"], "Chart workspace")
 
         controller_ids = {
-            "generator-form", "sample-button", "empty-state", "loading", "error",
+            "generator-form", "company-search", "company-options", "company-search-status",
+            "empty-state", "loading", "error",
             "chart-shell", "result-views", "result-toolbar", "result-meta",
             "source-link", "notes-panel", "notes-list", "svg-source", "json-source",
         }
         self.assertTrue(controller_ids.issubset(self.parser.elements))
+
+    def test_page_leads_with_the_user_benefit_and_one_action(self) -> None:
+        self.assertEqual(
+            self.parser.text["page-title"].strip(),
+            "Understand how a company makes and spends its money.",
+        )
+        self.assertEqual(
+            self.parser.text["hero-intro"].strip(),
+            "Earnings Genie turns a company’s SEC filing into one intuitive "
+            "visualization of its revenue, costs, and profit.",
+        )
+        self.assertEqual(self.parser.text["submit-label"].strip(), "Visualize earnings")
+        self.assertNotIn("trust-note", self.html)
+
+    def test_page_uses_earnings_genie_as_its_primary_brand(self) -> None:
+        self.assertEqual(self.parser.document_title.strip(), "Earnings Genie")
+        self.assertEqual(self.parser.brand_attributes.get("aria-label"), "Earnings Genie home")
+        self.assertEqual(" ".join(self.parser.brand_text.split()), "G Earnings Genie")
+        self.assertTrue(
+            self.parser.text["hero-intro"].strip().startswith("Earnings Genie ")
+        )
+        self.assertEqual(self.parser.workspace_attributes.get("aria-label"), "Sankey generator")
+
+    def test_generator_uses_alphabet_defaults_and_removes_advanced_inputs(self) -> None:
+        self.assertEqual(
+            self.parser.elements["company-search"].get("value"),
+            "Alphabet Inc. (GOOGL)",
+        )
+        self.assertEqual(self.parser.elements["ticker"].get("value"), "GOOGL")
+        self.assertIn("selected", self.parser.elements["fiscal-year-default"])
+        self.assertIn("selected", self.parser.elements["period-q1"])
+        for removed_id in ("sample-button", "user-agent", "override"):
+            self.assertNotIn(removed_id, self.parser.elements)
+
+    def test_method_links_the_official_edgar_search(self) -> None:
+        self.assertEqual(
+            self.parser.elements["edgar-link"].get("href"),
+            "https://www.sec.gov/edgar/search/",
+        )
 
     def test_result_modes_are_accessible_views_not_download_controls(self) -> None:
         self.assertIn("result-mode-tabs", self.parser.elements)

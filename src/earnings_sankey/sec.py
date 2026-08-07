@@ -103,6 +103,20 @@ class SECClient:
                 )
         raise SECError(f"Ticker {ticker!r} was not found in the SEC ticker list.")
 
+    def company_directory(self) -> list[dict[str, str]]:
+        payload = self._get_json(self.TICKERS_URL)
+        if not isinstance(payload, dict):
+            raise SECError("SEC returned an unexpected company ticker response.")
+        companies: list[dict[str, str]] = []
+        for item in payload.values():
+            if not isinstance(item, dict):
+                continue
+            ticker = str(item.get("ticker") or "").strip().upper()
+            name = str(item.get("title") or "").strip()
+            if ticker and name:
+                companies.append({"ticker": ticker, "name": name})
+        return companies
+
     def companyfacts(self, ticker: str) -> tuple[CompanyIdentity, dict[str, Any]]:
         identity = self.resolve_ticker(ticker)
         payload = self._get_json(self.COMPANYFACTS_URL.format(cik=identity.cik))

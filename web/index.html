@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Turn a public-company SEC filing into a clear, comparable earnings Sankey.">
-  <title>Earnings Sankey</title>
+  <meta name="description" content="See how a public company makes and spends money in one intuitive earnings visualization.">
+  <title>Earnings Genie</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="/" aria-label="Earnings Sankey home">
-      <span class="brand-mark" aria-hidden="true">S</span>
-      <span>Earnings Sankey</span>
+    <a class="brand" href="/" aria-label="Earnings Genie home">
+      <span class="brand-mark" aria-hidden="true">G</span>
+      <span>Earnings Genie</span>
     </a>
     <nav class="site-nav" aria-label="Primary navigation">
       <a href="#method">How it works</a>
@@ -23,13 +23,9 @@
     <section class="hero" aria-labelledby="page-title">
       <div class="hero-copy">
         <p class="eyebrow">Built from public SEC filings</p>
-        <h1 id="page-title">Follow the money through an earnings report.</h1>
-        <p class="intro">Choose a U.S. public company. Earnings Sankey reads its filing and turns revenue, costs, and profit into one clear flow.</p>
+        <h1 id="page-title">Understand how a company makes and spends its money.</h1>
+        <p class="intro" id="hero-intro">Earnings Genie turns a company’s SEC filing into one intuitive visualization of its revenue, costs, and profit.</p>
       </div>
-      <aside class="trust-note" aria-label="How results stay comparable">
-        <strong>Comparable by design</strong>
-        <span>Company-specific accounting tags are mapped into one consistent income-statement model.</span>
-      </aside>
     </section>
 
     <section class="workspace" aria-label="Sankey generator">
@@ -42,24 +38,31 @@
           <span class="data-badge"><i aria-hidden="true"></i> Live SEC data</span>
         </div>
 
-        <div class="field ticker-field">
+        <div class="field company-field">
           <div class="label-row">
-            <label for="ticker">Company ticker</label>
+            <label for="company-search">Company</label>
             <span>Required</span>
           </div>
-          <input id="ticker" name="ticker" autocomplete="off" maxlength="10" placeholder="AAPL" required>
+          <div class="company-combobox">
+            <input id="company-search" name="company-search" type="text" value="Alphabet Inc. (GOOGL)" autocomplete="off" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="company-options" aria-expanded="false" aria-describedby="company-search-status" placeholder="Search Apple or AAPL" required>
+            <input id="ticker" name="ticker" type="hidden" value="GOOGL">
+            <div class="company-options" id="company-options" role="listbox" aria-label="Company matches" hidden></div>
+          </div>
+          <small id="company-search-status" role="status" aria-live="polite">Search by company name or ticker.</small>
         </div>
 
         <div class="field-row">
           <div class="field">
             <label for="fiscal-year">Fiscal year</label>
-            <input id="fiscal-year" name="fiscal-year" inputmode="numeric" pattern="[0-9]{4}" placeholder="Latest">
+            <select id="fiscal-year" name="fiscal-year">
+              <option id="fiscal-year-default" value="2026" selected>2026</option>
+            </select>
           </div>
           <div class="field">
             <label for="period">Period</label>
             <select id="period" name="period">
               <option value="">Latest</option>
-              <option>Q1</option>
+              <option id="period-q1" selected>Q1</option>
               <option>Q2</option>
               <option>Q3</option>
               <option>FY</option>
@@ -67,25 +70,9 @@
           </div>
         </div>
 
-        <div class="field user-agent-field">
-          <div class="label-row">
-            <label for="user-agent">SEC contact</label>
-            <span>Required by SEC.gov</span>
-          </div>
-          <input id="user-agent" name="user-agent" autocomplete="email" placeholder="Your name and email" aria-describedby="sec-contact-help" required>
-          <small id="sec-contact-help">SEC.gov asks automated tools to identify themselves. Your contact is sent only with this request and isn’t saved.</small>
-        </div>
-
         <div class="actions">
-          <button class="primary" type="submit"><span>Build Sankey</span><span aria-hidden="true">→</span></button>
-          <button class="secondary" id="sample-button" type="button">Explore the Alphabet example</button>
+          <button class="primary" id="primary-action" type="submit"><span id="submit-label">Visualize earnings</span><span aria-hidden="true">→</span></button>
         </div>
-
-        <details class="override-panel">
-          <summary><span>Add segment detail</span><small>Optional</small></summary>
-          <p>Paste company-specific JSON to replace normalized revenue, cost, or operating-expense detail.</p>
-          <textarea id="override" rows="7" spellcheck="false" aria-label="Company-specific segment JSON" placeholder='{"revenue_streams":[{"name":"Products","value":1000000000}]}'></textarea>
-        </details>
       </form>
 
       <section class="result" id="result-workspace" aria-live="polite" aria-label="Chart workspace">
@@ -189,11 +176,11 @@
     <section class="method" id="method" aria-labelledby="method-title">
       <div class="method-heading">
         <p class="eyebrow">From filing to flow</p>
-        <h2 id="method-title">The accounting stays rigorous. The output gets easier to read.</h2>
+        <h2 id="method-title">Company earnings, organized for a clearer read.</h2>
       </div>
       <div class="method-steps">
-        <article><span>01</span><div><h3>Read the filing</h3><p>Pull the reported company facts from SEC EDGAR.</p></div></article>
-        <article><span>02</span><div><h3>Align the numbers</h3><p>Map company-specific tags into a consistent model.</p></div></article>
+        <article><span>01</span><div><h3>Read the filing</h3><p>Pull the company’s reported facts from <a id="edgar-link" href="https://www.sec.gov/edgar/search/" target="_blank" rel="noreferrer">SEC EDGAR</a>.</p></div></article>
+        <article><span>02</span><div><h3>Organize the numbers</h3><p>Bring revenue, costs, and profit into one clear view.</p></div></article>
         <article><span>03</span><div><h3>Trace the flow</h3><p>Show what came in, what went out, and what remained.</p></div></article>
       </div>
     </section>

@@ -19,6 +19,8 @@ class FakeElement {
     this.download = '';
     this.tabIndex = 0;
     this.clicked = false;
+    this.className = '';
+    this.type = '';
   }
 
   addEventListener(type, listener) {
@@ -38,10 +40,11 @@ class FakeElement {
   }
 
   setAttribute(name, value) { this.attributes.set(name, value); }
+  removeAttribute(name) { this.attributes.delete(name); }
   focus() { globalThis.document.activeElement = this; }
   click() { this.clicked = true; }
-  append(child) { this.children.push(child); }
-  replaceChildren() { this.children = []; }
+  append(...children) { this.children.push(...children); }
+  replaceChildren(...children) { this.children = [...children]; }
   remove() { this.removed = true; }
   select() {}
   contains(target) { return target === this || target?.shareOwner === this; }
@@ -75,7 +78,7 @@ function createHarness() {
   };
 
   const form = make('generator-form');
-  const sampleButton = make('sample-button', 'View example');
+  const primaryButton = make('primary-action', 'Visualize earnings');
   const modeTabs = ['chart', 'svg', 'json'].map((mode) => {
     const tab = make(`mode-${mode}`, mode.toUpperCase());
     tab.dataset.resultMode = mode;
@@ -104,9 +107,22 @@ function createHarness() {
   [
     'empty-state', 'loading', 'error', 'chart-shell', 'result-views', 'result-toolbar',
     'result-meta', 'source-link', 'notes-panel', 'notes-list', 'svg-source', 'json-source',
-    'share-menu', 'download-menu', 'native-share', 'action-status', 'override', 'fiscal-year', 'ticker',
-    'period', 'user-agent', 'share-linkedin', 'share-x', 'share-facebook',
+    'share-menu', 'download-menu', 'native-share', 'action-status', 'fiscal-year', 'ticker',
+    'period', 'company-search', 'company-options', 'company-search-status',
+    'share-linkedin', 'share-x', 'share-facebook',
   ].forEach((id) => make(id));
+
+  const companyControl = new FakeElement('company-control');
+  elements.set('.company-combobox', companyControl);
+  for (const id of ['company-search', 'company-options', 'company-search-status']) {
+    elements.get(`#${id}`).companyOwner = companyControl;
+  }
+  companyControl.contains = (target) => target === companyControl || target?.companyOwner === companyControl;
+  elements.get('#company-search').value = 'Alphabet Inc. (GOOGL)';
+  elements.get('#company-options').hidden = true;
+  elements.get('#ticker').value = 'GOOGL';
+  elements.get('#fiscal-year').value = '2026';
+  elements.get('#period').value = 'Q1';
 
   const shareControl = new FakeElement('share-control');
   const downloadControl = new FakeElement('download-control');
@@ -122,7 +138,7 @@ function createHarness() {
   elements.get('#download-menu').hidden = true;
   elements.get('#result-views').hidden = true;
   elements.get('#result-toolbar').hidden = true;
-  form.querySelectorAll = () => [sampleButton];
+  form.querySelectorAll = () => [primaryButton, ...elements.get('#company-options').children];
 
   const documentListeners = new Map();
   const downloads = [];
@@ -166,6 +182,13 @@ function createHarness() {
   };
 
   let nextResult = result('FIRST');
+  let companies = [
+    { ticker: 'GOOGL', name: 'Alphabet Inc.' },
+    { ticker: 'APP', name: 'AppLovin Corp' },
+    { ticker: 'AAPL', name: 'Apple Inc.' },
+    { ticker: 'MSFT', name: 'Microsoft Corp' },
+  ];
+  const fetchCalls = [];
   let clipboardWrite = async () => { throw new Error('clipboard denied'); };
   let clipboardImageWrite = async () => {};
   let nativeShare = async () => {};
@@ -182,15 +205,21 @@ function createHarness() {
     document,
     downloads,
     elements,
+    fetchCalls,
     modeTabs,
     navigator,
     resultPanels,
-    sampleButton,
+    form,
     setClipboardWrite(write) { clipboardWrite = write; },
     setClipboardImageWrite(write) { clipboardImageWrite = write; },
     setNativeShare(share) { nativeShare = share; },
+    setCompanies(value) { companies = value; },
     setResult(value) { nextResult = value; },
-    async fetch() { return { ok: true, async json() { return nextResult; } }; },
+    async fetch(url, options = {}) {
+      fetchCalls.push({ url, options });
+      const payload = url === '/api/companies' ? companies : nextResult;
+      return { ok: true, async json() { return payload; } };
+    },
   };
 }
 
@@ -215,7 +244,10 @@ async function loadApp(harness) {
 
   const appPath = new URL('../web/app.js', import.meta.url);
   const actionsUrl = new URL('../web/result-actions.mjs', import.meta.url).href;
-  const source = (await readFile(appPath, 'utf8')).replace("'./result-actions.mjs'", `'${actionsUrl}'`);
+  const searchUrl = new URL('../web/company-search.mjs', import.meta.url).href;
+  const source = (await readFile(appPath, 'utf8'))
+    .replace("'./result-actions.mjs'", `'${actionsUrl}'`)
+    .replace("'./company-search.mjs'", `'${searchUrl}'`);
   const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}#${Date.now()}`;
   await import(moduleUrl);
 }
@@ -227,16 +259,22 @@ async function flushAsyncEvents() {
 }
 
 
+async function submitForm(harness) {
+  await harness.form.emit('submit');
+  await flushAsyncEvents();
+}
+
+
 test('real app controller resets views, wires downloads, dismisses sharing, and ignores stale copy feedback', async () => {
   const harness = createHarness();
   await loadApp(harness);
 
-  await harness.sampleButton.emit('click');
+  await submitForm(harness);
   await harness.modeTabs[1].emit('click');
   assert.equal(harness.resultPanels[1].hidden, false);
 
   harness.setResult(result('SECOND'));
-  await harness.sampleButton.emit('click');
+  await submitForm(harness);
   assert.deepEqual(harness.resultPanels.map((panel) => panel.hidden), [false, true, true]);
   assert.match(harness.elements.get('#svg-source').textContent, /SECOND/);
 
@@ -267,7 +305,7 @@ test('real app controller resets views, wires downloads, dismisses sharing, and 
   const copyButton = harness.elements.get('#copy-svg-source');
   await copyButton.emit('click');
   harness.setResult(result('THIRD'));
-  await harness.sampleButton.emit('click');
+  await submitForm(harness);
   finishCopy();
   await flushAsyncEvents();
 
@@ -287,7 +325,7 @@ test('real app controller resets views, wires downloads, dismisses sharing, and 
 test('copy image reports success and ignores a superseded failure for the same result', async () => {
   const harness = createHarness();
   await loadApp(harness);
-  await harness.sampleButton.emit('click');
+  await submitForm(harness);
 
   let rejectFirstWrite;
   let writeCount = 0;
@@ -318,7 +356,7 @@ test('copy image reports success and ignores a superseded failure for the same r
 test('copy image failure gives a truthful PNG download fallback', async () => {
   const harness = createHarness();
   await loadApp(harness);
-  await harness.sampleButton.emit('click');
+  await submitForm(harness);
   harness.setClipboardImageWrite(async () => { throw new Error('clipboard denied'); });
 
   await harness.elements.get('#copy-image').emit('click');
@@ -334,7 +372,7 @@ test('copy image failure gives a truthful PNG download fallback', async () => {
 test('copy image completion from an earlier result cannot change the current result feedback', async () => {
   const harness = createHarness();
   await loadApp(harness);
-  await harness.sampleButton.emit('click');
+  await submitForm(harness);
 
   let finishWrite;
   harness.setClipboardImageWrite(async (items) => {
@@ -346,10 +384,112 @@ test('copy image completion from an earlier result cannot change the current res
   const pendingCopy = copyButton.emit('click');
   await flushAsyncEvents();
   harness.setResult(result('THIRD'));
-  await harness.sampleButton.emit('click');
+  await submitForm(harness);
   finishWrite();
   await pendingCopy;
 
   assert.equal(copyButton.textContent, 'Copy image');
   assert.equal(harness.elements.get('#action-status').textContent, '');
+});
+
+
+test('company search loads once, ranks matches, and supports pointer selection', async () => {
+  const harness = createHarness();
+  await loadApp(harness);
+  const input = harness.elements.get('#company-search');
+
+  await input.emit('focus');
+  await flushAsyncEvents();
+  input.value = 'app';
+  await input.emit('input');
+  await flushAsyncEvents();
+  await input.emit('input');
+  await flushAsyncEvents();
+
+  assert.equal(harness.fetchCalls.filter(({ url }) => url === '/api/companies').length, 1);
+  const options = harness.elements.get('#company-options').children;
+  assert.deepEqual(options.map(({ dataset }) => dataset.ticker), ['APP', 'AAPL']);
+
+  await options[1].emit('click');
+  assert.equal(input.value, 'Apple Inc. (AAPL)');
+  assert.equal(harness.elements.get('#ticker').value, 'AAPL');
+  assert.equal(harness.elements.get('#company-options').hidden, true);
+});
+
+
+test('prefilled company remains selected when its directory loads', async () => {
+  const harness = createHarness();
+  await loadApp(harness);
+
+  await harness.elements.get('#company-search').emit('focus');
+  await flushAsyncEvents();
+
+  assert.equal(harness.elements.get('#ticker').value, 'GOOGL');
+  assert.equal(harness.elements.get('#company-options').hidden, true);
+  assert.equal(harness.elements.get('#company-search-status').textContent, 'Alphabet Inc. selected.');
+});
+
+
+test('company search supports arrow, enter, and escape keyboard behavior', async () => {
+  const harness = createHarness();
+  await loadApp(harness);
+  const input = harness.elements.get('#company-search');
+
+  input.value = 'app';
+  await input.emit('input');
+  await flushAsyncEvents();
+  await input.emit('keydown', { key: 'ArrowDown' });
+  await input.emit('keydown', { key: 'Enter' });
+
+  assert.equal(input.value, 'AppLovin Corp (APP)');
+  assert.equal(harness.elements.get('#ticker').value, 'APP');
+
+  input.value = 'app';
+  await input.emit('input');
+  await input.emit('keydown', { key: 'Escape' });
+  assert.equal(harness.elements.get('#company-options').hidden, true);
+});
+
+
+test('form accepts a manual ticker and sends only company period fields', async () => {
+  const harness = createHarness();
+  await loadApp(harness);
+  harness.elements.get('#company-search').value = ' msft ';
+  harness.elements.get('#ticker').value = '';
+
+  await submitForm(harness);
+
+  const request = harness.fetchCalls.find(({ url }) => url === '/api/generate');
+  assert.deepEqual(JSON.parse(request.options.body), {
+    ticker: 'MSFT',
+    fiscal_year: 2026,
+    period: 'Q1',
+  });
+});
+
+
+test('form rejects an unselected company name before generation', async () => {
+  const harness = createHarness();
+  await loadApp(harness);
+  harness.elements.get('#company-search').value = 'Apple Incorporated';
+  harness.elements.get('#ticker').value = '';
+
+  await submitForm(harness);
+
+  assert.equal(harness.fetchCalls.some(({ url }) => url === '/api/generate'), false);
+  assert.equal(
+    harness.elements.get('#error').textContent,
+    'Select a matching company or enter a valid ticker.',
+  );
+});
+
+
+test('fiscal year choices retain 2026 as the default', async () => {
+  const harness = createHarness();
+  await loadApp(harness);
+
+  const year = harness.elements.get('#fiscal-year');
+  assert.equal(year.value, '2026');
+  assert.equal(year.children.some((option) => option.value === '2027'), true);
+  assert.equal(year.children.at(-1).value, '2009');
 });

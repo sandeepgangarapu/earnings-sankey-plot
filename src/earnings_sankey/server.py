@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import os
 import webbrowser
+from collections.abc import Mapping
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -18,6 +20,17 @@ from .sec import SECClient
 
 
 WEB_ROOT = Path(__file__).resolve().parents[2] / "web"
+
+
+def configured_sec_client(environ: Mapping[str, str] | None = None) -> SECClient:
+    environment = os.environ if environ is None else environ
+    user_agent = str(environment.get("SEC_USER_AGENT") or "").strip()
+    if not user_agent:
+        raise ValueError(
+            "This service is not configured for SEC access. Set SEC_USER_AGENT "
+            "on the server to a name and contact email."
+        )
+    return SECClient(user_agent)
 
 
 def _result(statement: Statement) -> dict[str, Any]:
@@ -35,7 +48,7 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Cache-Control", "no-store")
 
-    def _json(self, status: int, payload: dict[str, Any]) -> None:
+    def _json(self, status: int, payload: Any) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -60,6 +73,12 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         route = urlparse(self.path).path
+        if route == "/api/companies":
+            try:
+                self._json(HTTPStatus.OK, configured_sec_client().company_directory())
+            except (OSError, ValueError, RuntimeError) as exc:
+                self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
+            return
         if route == "/api/sample":
             try:
                 self._json(HTTPStatus.OK, _result(Statement.from_dict(_load_json(SAMPLE_PATH))))
@@ -88,8 +107,7 @@ class AppHandler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError("Expected a JSON object.")
             ticker = str(payload.get("ticker", "")).strip().upper()
-            user_agent = str(payload.get("user_agent", "")).strip()
-            client = SECClient(user_agent)
+            client = configured_sec_client()
             identity, companyfacts = client.companyfacts(ticker)
             fiscal_year = payload.get("fiscal_year")
             period = str(payload.get("period") or "").upper() or None
@@ -109,11 +127,6 @@ class AppHandler(BaseHTTPRequestHandler):
                 selected["fiscal_year"],
                 selected["period"],
             )
-            override = payload.get("override")
-            if override:
-                if not isinstance(override, dict):
-                    raise ValueError("override must be a JSON object.")
-                statement = statement.with_override(override)
             self._json(HTTPStatus.OK, _result(statement))
         except (json.JSONDecodeError, OSError, ValueError, RuntimeError) as exc:
             self._json(HTTPStatus.BAD_REQUEST, {"error": str(exc)})
@@ -124,7 +137,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the Earnings Sankey web app.")
+    parser = argparse.ArgumentParser(description="Run the Earnings Genie web app.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--open", action="store_true", help="Open the app in a browser.")
@@ -136,7 +149,7 @@ def main(argv: list[str] | None = None) -> int:
     address = (args.host, args.port)
     server = ThreadingHTTPServer(address, AppHandler)
     url = f"http://{args.host}:{args.port}"
-    print(f"Earnings Sankey is running at {url}")
+    print(f"Earnings Genie is running at {url}")
     if args.open:
         webbrowser.open(url)
     try:
