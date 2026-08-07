@@ -14,6 +14,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; min-width: 320px; }
 button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -103,4 +104,3 @@ footer { border-top: 1px solid var(--line); padding: 28px clamp(20px, 5vw, 72px)
   .download-actions { width: 100%; flex-wrap: wrap; }
   .method { grid-template-columns: 1fr; }
 }
-
