@@ -66,10 +66,10 @@ class WebStateTests(unittest.TestCase):
         self.parser = _ElementsById()
         self.parser.feed((ROOT / "web" / "index.html").read_text())
 
-    def test_completed_chart_hides_loading_and_empty_states(self) -> None:
+    def test_hidden_result_states_and_panels_are_not_displayed(self) -> None:
         css = (ROOT / "web" / "styles.css").read_text()
 
-        for element_id in ("loading", "empty-state"):
+        for element_id in ("loading", "empty-state", "svg-panel", "json-panel", "share-menu"):
             attributes = self.parser.elements[element_id]
             attributes["hidden"] = None
             with self.subTest(element_id=element_id):
