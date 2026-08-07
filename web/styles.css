@@ -156,7 +156,7 @@ h1 {
 }
 .data-badge i { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(32,165,111,.12); }
 .field, .ticker-field, .user-agent-field { display: flex; flex-direction: column; gap: 7px; }
-.field + .field, .field-row + .field, .ticker-field + .field-row { margin-top: 15px; }
+.field-row + .field, .ticker-field + .field-row { margin-top: 15px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 label { color: var(--forest); font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
@@ -287,7 +287,7 @@ footer p { margin: 0; }
   .controls { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 14px 11px; border-right: 0; border-bottom: 1px solid var(--rule); }
   .form-heading, .user-agent-field, .actions, .override-panel { grid-column: 1 / -1; }
   .field-row { display: contents; }
-  .field + .field, .field-row + .field, .ticker-field + .field-row { margin-top: 0; }
+  .field-row + .field, .ticker-field + .field-row { margin-top: 0; }
   .actions { grid-template-columns: 1fr 1fr; align-items: center; }
   .result { border-radius: 0 0 13px 13px; }
   .method-steps { border-top: 1px solid var(--rule); }
@@ -306,7 +306,7 @@ footer p { margin: 0; }
   .trust-note { font-size: 11px; }
   .workspace { border-radius: 10px; }
   .controls { display: block; padding: 20px 17px; }
-  .field, .ticker-field, .user-agent-field, .field-row, .actions, .override-panel { margin-top: 15px; }
+  .ticker-field, .user-agent-field, .field-row, .actions, .override-panel { margin-top: 15px; }
   .form-heading { margin-bottom: 20px; }
   .field-row { display: grid; }
   .actions { display: grid; grid-template-columns: 1fr; }
@@ -335,6 +335,7 @@ footer p { margin: 0; }
   .hero h1 { font-size: 35px; }
   .form-heading { align-items: flex-start; flex-direction: column; }
   .field-row { grid-template-columns: 1fr; }
+  .field-row > .field + .field { margin-top: 15px; }
   .result-navigation { align-items: stretch; flex-direction: column; }
   .mode-tabs { width: 100%; }
   .view-actions { align-items: flex-start; flex-direction: column; }
