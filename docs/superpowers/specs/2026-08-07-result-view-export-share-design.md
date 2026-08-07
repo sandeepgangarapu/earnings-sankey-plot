@@ -10,8 +10,8 @@ The result toolbar will contain a segmented `Chart / SVG / JSON` mode switcher. 
 
 Each mode will show a compact action row immediately above its content:
 
-- **Chart:** `Download SVG`, `Download HTML`, `Copy SVG`, and `Share`.
-- **SVG:** `Download SVG` and `Copy SVG` above a readable, scrollable source preview.
+- **Chart:** `Copy image`, `Download`, and `Share`. `Download` opens a disclosure with explicit `Download PNG`, `Download SVG`, and `Download HTML` actions.
+- **SVG:** `Download SVG` and `Copy SVG code` above a readable, scrollable source preview.
 - **JSON:** `Download JSON` and `Copy JSON` above a readable, scrollable normalized-data preview.
 
 The Chart mode remains the default whenever a result is generated or the sample is opened. The active mode is visually distinct and represented with `aria-selected` semantics. Mode content uses a tab-panel relationship so keyboard and assistive-technology users can understand the control.
@@ -31,7 +31,9 @@ Native Share will attempt to include a generated SVG file when the browser suppo
 
 ## Copy and feedback
 
-Copy actions write the complete active representation to the clipboard: raw SVG markup in Chart or SVG mode and pretty-printed normalized JSON in JSON mode.
+`Copy image` renders the chart to a two-times-resolution PNG and writes it as `image/png` through the asynchronous Clipboard API. This makes the chart directly pasteable into messaging, email, documents, and presentation software. When image clipboard access is unavailable, the status message points users to `Download PNG` rather than claiming success.
+
+Source-copy actions write the complete active representation to the clipboard: raw SVG markup in SVG mode and pretty-printed normalized JSON in JSON mode. `Copy SVG code` is deliberately labeled as code so it cannot be mistaken for copying a pasteable chart image.
 
 After a successful copy, the action label temporarily changes to `Copied` and an accessible live region announces the result. If the Clipboard API is unavailable or rejects the request, a legacy selection-based fallback is attempted. If both methods fail, an inline status message explains that copying was unavailable; the interface must not report false success.
 
@@ -43,6 +45,7 @@ Small client-side helpers will provide:
 
 - Mode selection and tab/panel state synchronization.
 - SVG, JSON, and standalone HTML serialization.
+- SVG-to-PNG rasterization at two-times resolution.
 - Filename generation and file download.
 - Clipboard copying with fallback and status feedback.
 - Share metadata and social-share URL generation.
@@ -60,6 +63,7 @@ The controls will extend the app's current light, compact visual language rather
 - Download actions are inert when no result exists and are only exposed with a visible result.
 - Pop-up blockers may prevent a social-share window; the underlying share link remains a standard anchor so users can open it normally.
 - Native Share and clipboard capability checks happen at action time.
+- PNG generation failures surface in the existing action-status region and never leave temporary object URLs allocated.
 - A cancelled native-share prompt is not shown as an error.
 
 ## Testing

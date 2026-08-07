@@ -135,3 +135,42 @@ Start the local server, open the sample, inspect desktop and narrow layouts, swi
 git add web/styles.css README.md tests/test_web.py
 git commit -m "Polish result export and sharing interface"
 ```
+
+### Task 4: Pasteable chart images and consolidated Chart actions
+
+**Files:**
+- Modify: `web/result-actions.mjs`
+- Modify: `web/index.html`
+- Modify: `web/app.js`
+- Modify: `web/styles.css`
+- Modify: `tests/test_result_actions.mjs`
+- Modify: `tests/test_app_controller.mjs`
+- Modify: `tests/test_web.py`
+
+**Interfaces:**
+- Produces: `renderSvgToPng(svg, environment, scale) -> Promise<Blob>` and `copyPngBlob(blob, environment) -> Promise<boolean>`.
+- Reorganizes Chart actions into `Copy image`, a Download disclosure, and the existing Share disclosure.
+
+- [ ] **Step 1: Write failing PNG and control-structure tests**
+
+Test two-times canvas sizing, SVG object-URL cleanup, PNG blob resolution, clipboard-image success/failure, explicit Download disclosure semantics, and the unambiguous `Copy SVG code` label.
+
+- [ ] **Step 2: Run tests and verify RED**
+
+Run: `node --test tests/test_result_actions.mjs && uv run python -m unittest tests.test_web -v`
+
+Expected: FAIL because PNG helpers and reorganized controls do not exist.
+
+- [ ] **Step 3: Implement helpers and controller wiring**
+
+Rasterize the server SVG through an offscreen canvas at scale 2, copy a PNG `ClipboardItem` when supported, download the generated PNG through the existing blob path, and add mutually exclusive Download/Share disclosures with outside-click and Escape dismissal.
+
+- [ ] **Step 4: Run all automated verification**
+
+Run: `uv run python -m unittest discover -s tests -v && node --test tests/test_result_actions.mjs tests/test_app_controller.mjs && node --input-type=module --check < web/app.js && git diff --check`
+
+Expected: all Python and Node tests PASS, syntax is valid, and the diff check is empty.
+
+- [ ] **Step 5: Verify the actual browser UI**
+
+Open the sample at desktop and 320px widths. Verify `Copy image` feedback, PNG/SVG/HTML download choices, mutually exclusive disclosures, Escape dismissal, SVG/JSON mode actions, and an empty console.
