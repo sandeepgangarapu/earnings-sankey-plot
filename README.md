@@ -21,11 +21,11 @@ The renderer is dependency-free: it generates responsive SVG directly rather tha
 
 ## Run the web app
 
-Python 3.11+ is the only requirement.
+Python 3.10+ and [`uv`](https://docs.astral.sh/uv/) are the only requirements.
 
 ```bash
-python -m pip install -e .
-earnings-sankey-server --open
+uv sync
+uv run earnings-sankey-server --open
 ```
 
 Then open `http://127.0.0.1:8000`. Select **View example** to try the bundled chart without a network request.
@@ -38,10 +38,10 @@ For live SEC data, enter an SEC identity such as `Your Name you@example.com`. SE
 export SEC_USER_AGENT="Your Name you@example.com"
 
 # Latest usable filing period
-earnings-sankey AAPL
+uv run earnings-sankey AAPL
 
 # Specific period with all export formats
-earnings-sankey GOOGL \
+uv run earnings-sankey GOOGL \
   --fiscal-year 2025 \
   --period Q2 \
   --output output/googl-q2.html \
@@ -49,10 +49,8 @@ earnings-sankey GOOGL \
   --json-output output/googl-q2.json
 
 # Offline visual reference
-earnings-sankey --sample --output output/example.html
+uv run earnings-sankey --sample --output output/example.html
 ```
-
-If you do not want to install the package, prepend `PYTHONPATH=src python -m earnings_sankey` to the same arguments.
 
 ## Add business-segment detail
 
@@ -72,7 +70,7 @@ SEC Company Facts reliably exposes consolidated financial-statement facts, but p
 ```
 
 ```bash
-earnings-sankey AAPL --override segments.json
+uv run earnings-sankey AAPL --override segments.json
 ```
 
 The renderer adds an “Other” residual when provided items do not equal the normalized total. If items exceed the total materially, it falls back to the consolidated node rather than drawing a misleading chart.
@@ -108,7 +106,7 @@ tests/            Unit and render tests
 ## Test
 
 ```bash
-PYTHONPATH=src python -m unittest discover -s tests -v
+uv run python -m unittest discover -s tests -v
 ```
 
 GitHub Actions runs the unit suite plus an offline HTML/SVG smoke test on every push and pull request.

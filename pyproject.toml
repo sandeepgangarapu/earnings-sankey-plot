@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "earnings-sankey"
-version = "0.1.0"
+version = "0.1.1"
 description = "Turn public SEC earnings data into consistent income-statement Sankey diagrams."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [{ name = "Sandeep Gangarapu" }]
 dependencies = []
 
@@ -24,4 +24,3 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
-
