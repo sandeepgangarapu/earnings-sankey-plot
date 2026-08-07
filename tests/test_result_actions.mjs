@@ -6,7 +6,9 @@ import {
   buildNativeShareData,
   buildSocialShareUrls,
   buildStandaloneHtml,
+  copyPngBlob,
   copyText,
+  renderSvgToPng,
   selectResultMode,
   serializeStatement,
   statementFilename,
@@ -103,6 +105,115 @@ test('native share data falls back to metadata when file capability checks fail'
     File: class { constructor() { throw new Error('file unavailable'); } },
     canShare() { return true; },
   }), metadata);
+});
+
+
+test('renders SVG to a two-times-resolution PNG and revokes its object URL', async () => {
+  const events = [];
+  let canvas;
+  class FakeImage {
+    constructor() {
+      this.naturalWidth = 300;
+      this.naturalHeight = 150;
+    }
+    set src(value) {
+      events.push(['src', value]);
+      queueMicrotask(() => this.onload());
+    }
+  }
+  const document = {
+    createElement(tag) {
+      assert.equal(tag, 'canvas');
+      canvas = {
+        width: 0,
+        height: 0,
+        getContext(kind) {
+          assert.equal(kind, '2d');
+          return { drawImage(...args) { events.push(['draw', ...args.slice(1)]); } };
+        },
+        toBlob(callback, type) {
+          events.push(['blob', type]);
+          callback(new Blob(['png bytes'], { type }));
+        },
+      };
+      return canvas;
+    },
+  };
+  const url = {
+    createObjectURL(blob) { events.push(['create', blob.type]); return 'blob:chart'; },
+    revokeObjectURL(value) { events.push(['revoke', value]); },
+  };
+
+  const png = await renderSvgToPng('<svg viewBox="0 0 1280 720"></svg>', {
+    Blob,
+    Image: FakeImage,
+    document,
+    URL: url,
+  }, 2);
+
+  assert.equal(png.type, 'image/png');
+  assert.equal(canvas.width, 2560);
+  assert.equal(canvas.height, 1440);
+  assert.deepEqual(events, [
+    ['create', 'image/svg+xml'],
+    ['src', 'blob:chart'],
+    ['draw', 0, 0, 2560, 1440],
+    ['blob', 'image/png'],
+    ['revoke', 'blob:chart'],
+  ]);
+});
+
+
+test('rejects failed PNG rendering and still revokes its object URL', async () => {
+  const revoked = [];
+  class BrokenImage {
+    set src(value) { queueMicrotask(() => this.onerror(new Error(`cannot load ${value}`))); }
+  }
+
+  await assert.rejects(
+    renderSvgToPng('<svg></svg>', {
+      Blob,
+      Image: BrokenImage,
+      document: { createElement() { throw new Error('must not draw'); } },
+      URL: {
+        createObjectURL() { return 'blob:broken'; },
+        revokeObjectURL(value) { revoked.push(value); },
+      },
+    }),
+    /could not be rendered/i,
+  );
+  assert.deepEqual(revoked, ['blob:broken']);
+});
+
+
+test('starts a promise-backed PNG clipboard write synchronously from the user action', async () => {
+  const png = new Blob(['png'], { type: 'image/png' });
+  const writes = [];
+  let resolvePng;
+  const pendingPng = new Promise((resolve) => { resolvePng = resolve; });
+  class FakeClipboardItem {
+    constructor(content) { this.content = content; }
+  }
+
+  const copy = copyPngBlob(pendingPng, {
+    ClipboardItem: FakeClipboardItem,
+    clipboard: {
+      async write(items) {
+        writes.push(items);
+        await items[0].content['image/png'];
+      },
+    },
+  });
+  assert.equal(writes.length, 1);
+  assert.equal(writes[0][0].content['image/png'], pendingPng);
+  resolvePng(png);
+  assert.equal(await copy, true);
+
+  assert.equal(await copyPngBlob(png, {}), false);
+  assert.equal(await copyPngBlob(png, {
+    ClipboardItem: FakeClipboardItem,
+    clipboard: { async write() { throw new Error('denied'); } },
+  }), false);
 });
 
 

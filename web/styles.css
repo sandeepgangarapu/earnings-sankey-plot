@@ -77,14 +77,16 @@ button:disabled { opacity: .55; cursor: wait; transform: none; }
 .view-actions { min-height: 53px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 9px 18px; border-bottom: 1px solid var(--line); background: #f6f9f6; }
 .view-label { color: var(--muted); font-size: 11px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 7px; flex-wrap: wrap; }
-.action-buttons > button, .share-control > button { min-height: 32px; padding: 0 11px; border: 1px solid var(--line); background: white; color: var(--navy); font-size: 12px; }
+.action-buttons > button, .popover-control > button { min-height: 32px; padding: 0 11px; border: 1px solid var(--line); background: white; color: var(--navy); font-size: 12px; }
 .action-buttons > button[id^="download"] { border-color: #add6c3; background: #eff8f3; color: #076343; }
-.action-buttons > button:hover, .share-control > button:hover { border-color: #aebeb4; background: #fdfefd; }
-.share-control { position: relative; }
-.share-control > button[aria-expanded="true"] { border-color: var(--navy); background: var(--navy); color: white; }
-.share-menu { position: absolute; z-index: 10; top: calc(100% + 7px); right: 0; display: grid; min-width: 188px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: 0 14px 34px rgba(20,58,82,.18); }
-.share-menu a, .share-menu button { display: flex; align-items: center; min-height: 38px; padding: 0 10px; border-radius: 6px; background: transparent; color: var(--ink); font-size: 13px; font-weight: 700; text-align: left; text-decoration: none; }
-.share-menu a:hover, .share-menu button:hover, .share-menu a:focus-visible, .share-menu button:focus-visible { background: #edf6f0; color: #076343; outline: none; }
+.action-buttons > .featured-action { border-color: #08724f; background: #08724f; color: white; }
+.action-buttons > .featured-action:hover { border-color: #065d40; background: #065d40; }
+.action-buttons > button:hover, .popover-control > button:hover { border-color: #aebeb4; background: #fdfefd; }
+.popover-control { position: relative; }
+.popover-control > button[aria-expanded="true"] { border-color: var(--navy); background: var(--navy); color: white; }
+.action-menu { position: absolute; z-index: 10; top: calc(100% + 7px); right: 0; display: grid; min-width: 188px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: white; box-shadow: 0 14px 34px rgba(20,58,82,.18); }
+.action-menu a, .action-menu button { display: flex; align-items: center; min-height: 38px; padding: 0 10px; border-radius: 6px; background: transparent; color: var(--ink); font-size: 13px; font-weight: 700; text-align: left; text-decoration: none; }
+.action-menu a:hover, .action-menu button:hover, .action-menu a:focus-visible, .action-menu button:focus-visible { background: #edf6f0; color: #076343; outline: none; }
 .code-preview { min-height: 500px; max-height: 680px; margin: 0; padding: 20px; overflow: auto; background: #f9fbf9; color: #26404d; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.65; tab-size: 2; }
 .code-preview:focus-visible { outline: 3px solid rgba(0,166,106,.22); outline-offset: -3px; }
 .action-status { margin: 0; padding: 10px 18px; border-top: 1px solid var(--line); background: #f6f9f6; color: #076343; font-size: 12px; font-weight: 750; }
@@ -132,5 +134,6 @@ footer { border-top: 1px solid var(--line); padding: 28px clamp(20px, 5vw, 72px)
 @media (max-width: 420px) {
   .result-navigation { align-items: stretch; flex-direction: column; }
   .mode-tabs { width: 100%; }
-  .share-menu { left: 0; right: auto; }
+  .action-buttons { gap: 5px; }
+  .action-buttons > button, .popover-control > button { padding-inline: 10px; }
 }

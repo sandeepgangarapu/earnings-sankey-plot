@@ -13,7 +13,7 @@ The project fetches structured Company Facts from SEC EDGAR, selects the correct
 - Automatic normalization of revenue, cost of revenue, gross profit, operating expenses, operating profit, other income/expense, pretax profit, tax, and net income
 - Automatic R&D, sales/marketing, G&A, or SG&A breakout when non-overlapping SEC facts are available
 - Same-period year-over-year changes
-- Chart, SVG-source, and normalized-JSON views with explicit download and clipboard actions
+- Chart, SVG-source, and normalized-JSON views with pasteable PNG images and explicit downloads
 - Native sharing plus ready-to-open LinkedIn, X, and Facebook share links
 - Manual JSON overrides for business-segment revenue and company-specific cost detail
 - Positive-profit and basic loss-making statement layouts

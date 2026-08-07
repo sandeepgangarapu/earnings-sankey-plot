@@ -78,6 +78,88 @@ export function buildNativeShareData(metadata, svg, filename, environment = {}) 
 }
 
 
+function svgViewBoxSize(svg) {
+  const match = String(svg).match(/\bviewBox\s*=\s*["']\s*[-\d.]+\s+[-\d.]+\s+([\d.]+)\s+([\d.]+)\s*["']/i);
+  if (match) {
+    const width = Number(match[1]);
+    const height = Number(match[2]);
+    if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) return { width, height };
+  }
+  return { width: 1280, height: 720 };
+}
+
+
+export function renderSvgToPng(svg, environment = {}, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const BlobConstructor = environment.Blob;
+    const ImageConstructor = environment.Image;
+    const documentRef = environment.document;
+    const urlApi = environment.URL;
+    let objectUrl = null;
+
+    const cleanup = () => {
+      if (objectUrl) {
+        urlApi.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+    };
+    const fail = () => {
+      cleanup();
+      reject(new Error('The chart could not be rendered as a PNG.'));
+    };
+
+    try {
+      if (!BlobConstructor || !ImageConstructor || !documentRef?.createElement || !urlApi?.createObjectURL) {
+        fail();
+        return;
+      }
+      const svgBlob = new BlobConstructor([svg], { type: 'image/svg+xml' });
+      objectUrl = urlApi.createObjectURL(svgBlob);
+      const image = new ImageConstructor();
+      image.onload = () => {
+        try {
+          const { width, height } = svgViewBoxSize(svg);
+          const canvas = documentRef.createElement('canvas');
+          canvas.width = Math.round(width * scale);
+          canvas.height = Math.round(height * scale);
+          const context = canvas.getContext('2d');
+          if (!context || typeof canvas.toBlob !== 'function') {
+            fail();
+            return;
+          }
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((pngBlob) => {
+            cleanup();
+            if (pngBlob) resolve(pngBlob);
+            else reject(new Error('The chart could not be rendered as a PNG.'));
+          }, 'image/png');
+        } catch {
+          fail();
+        }
+      };
+      image.onerror = fail;
+      image.src = objectUrl;
+    } catch {
+      fail();
+    }
+  });
+}
+
+
+export async function copyPngBlob(pngSource, environment = {}) {
+  if (typeof environment.ClipboardItem !== 'function' || typeof environment.clipboard?.write !== 'function') {
+    return false;
+  }
+  try {
+    const item = new environment.ClipboardItem({ 'image/png': pngSource });
+    await environment.clipboard.write([item]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
 export function selectResultMode(requestedMode, tabs, panels) {
   const modes = Array.from(tabs, (tab) => tab.dataset.resultMode);
   const mode = modes.includes(requestedMode) ? requestedMode : (modes.includes('chart') ? 'chart' : modes[0]);
