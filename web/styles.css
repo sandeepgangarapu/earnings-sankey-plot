@@ -245,9 +245,9 @@ button:disabled { cursor: wait; opacity: .55; }
 .view-label { color: var(--faint); font-size: 9px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
 .action-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 .action-buttons > button, .popover-control > button { min-height: 31px; padding: 0 10px; border: 1px solid var(--rule); background: var(--surface); color: var(--forest); font-size: 11px; }
-.action-buttons > button[id^="download"] { border-color: #bbdac9; background: #f0f8f3; color: #176747; }
-.action-buttons > .featured-action { border-color: #247454; background: #247454; color: white; }
-.action-buttons > .featured-action:hover { border-color: #185f43; background: #185f43; }
+.action-buttons > button[id^="download"], .download-control > #download-button { border-color: #bbdac9; background: #f0f8f3; color: #176747; }
+.action-buttons > .featured-action { border-color: var(--forest); background: var(--forest); color: white; }
+.action-buttons > .featured-action:hover { border-color: var(--forest-strong); background: var(--forest-strong); }
 .action-buttons > button:hover, .popover-control > button:hover { border-color: var(--rule-strong); background: #fbfcfa; }
 .popover-control { position: relative; }
 .popover-control > button[aria-expanded="true"] { border-color: var(--forest); background: var(--forest); color: white; }
@@ -311,7 +311,6 @@ footer p { margin: 0; }
   .field-row { display: grid; }
   .actions { display: grid; grid-template-columns: 1fr; }
   .result { min-height: 500px; border-radius: 0 0 10px 10px; }
-  .result-toolbar { align-items: stretch; flex-direction: column; padding-block: 12px; }
   .result-navigation { justify-content: space-between; gap: 10px; }
   .mode-tabs { flex: 1; }
   .empty-state { min-height: 500px; }
@@ -319,13 +318,16 @@ footer p { margin: 0; }
   .empty-state-body { min-height: 448px; padding-inline: 20px; }
   .mini-flow span { width: 114px; }
   .loading { min-height: 500px; grid-auto-flow: row; gap: 12px; text-align: center; }
-  .view-actions { align-items: flex-start; flex-direction: column; }
   .action-buttons { justify-content: flex-start; }
   .code-preview { min-height: 450px; padding: 15px; font-size: 11px; }
   .method { margin-top: 52px; padding-inline: 5px; }
   .method-steps { grid-template-columns: 1fr; }
   .method article { padding: 17px 0; border-left: 0; border-bottom: 1px solid var(--rule); }
   footer { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 520px) {
+  .result-toolbar { align-items: stretch; flex-direction: column; padding-block: 12px; }
 }
 
 @media (max-width: 420px) {
@@ -335,6 +337,7 @@ footer p { margin: 0; }
   .field-row { grid-template-columns: 1fr; }
   .result-navigation { align-items: stretch; flex-direction: column; }
   .mode-tabs { width: 100%; }
+  .view-actions { align-items: flex-start; flex-direction: column; }
   .action-buttons { gap: 5px; }
   .action-buttons > button, .popover-control > button { padding-inline: 10px; }
 }
