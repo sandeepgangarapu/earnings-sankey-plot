@@ -129,3 +129,8 @@ footer { border-top: 1px solid var(--line); padding: 28px clamp(20px, 5vw, 72px)
   .code-preview { min-height: 460px; padding: 16px; font-size: 11px; }
   .method { grid-template-columns: 1fr; }
 }
+@media (max-width: 420px) {
+  .result-navigation { align-items: stretch; flex-direction: column; }
+  .mode-tabs { width: 100%; }
+  .share-menu { left: 0; right: auto; }
+}

@@ -125,10 +125,15 @@ class WebStateTests(unittest.TestCase):
 
         self.assertIn("share-button", self.parser.elements)
         share_button = self.parser.elements["share-button"]
-        self.assertEqual(share_button["aria-haspopup"], "menu")
+        self.assertNotIn("aria-haspopup", share_button)
         self.assertEqual(share_button["aria-expanded"], "false")
         self.assertEqual(share_button["aria-controls"], "share-menu")
-        self.assertIn("hidden", self.parser.elements["share-menu"])
+        share_options = self.parser.elements["share-menu"]
+        self.assertNotIn("role", share_options)
+        self.assertEqual(share_options["aria-label"], "Share options")
+        self.assertIn("hidden", share_options)
+        for element_id in ("native-share", "share-linkedin", "share-x", "share-facebook"):
+            self.assertNotIn("role", self.parser.elements[element_id])
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   buildShareMetadata,
+  buildNativeShareData,
   buildSocialShareUrls,
   buildStandaloneHtml,
   copyText,
@@ -57,6 +58,51 @@ test('builds encoded LinkedIn, X, and Facebook share destinations', () => {
   assert.equal(x.searchParams.get('url'), pageUrl);
   assert.equal(facebook.origin + facebook.pathname, 'https://www.facebook.com/sharer/sharer.php');
   assert.equal(facebook.searchParams.get('u'), pageUrl);
+});
+
+
+test('includes an SVG file in native share data only when the full payload is supported', () => {
+  const metadata = buildShareMetadata(statement, 'https://example.com/result');
+  const checked = [];
+  class FakeFile {
+    constructor(parts, name, options) {
+      this.parts = parts;
+      this.name = name;
+      this.type = options.type;
+    }
+  }
+
+  const shareData = buildNativeShareData(metadata, '<svg></svg>', 'chart.svg', {
+    File: FakeFile,
+    canShare(candidate) { checked.push(candidate); return true; },
+  });
+
+  assert.equal(checked.length, 1);
+  assert.equal(checked[0].title, metadata.title);
+  assert.equal(checked[0].text, metadata.text);
+  assert.equal(checked[0].url, metadata.url);
+  assert.equal(shareData.files[0].name, 'chart.svg');
+  assert.equal(shareData.files[0].type, 'image/svg+xml');
+  assert.deepEqual(shareData.files[0].parts, ['<svg></svg>']);
+});
+
+
+test('native share data falls back to metadata when file capability checks fail', () => {
+  const metadata = buildShareMetadata(statement, 'https://example.com/result');
+  class FakeFile {}
+
+  assert.deepEqual(buildNativeShareData(metadata, '<svg/>', 'chart.svg', {
+    File: FakeFile,
+    canShare() { return false; },
+  }), metadata);
+  assert.deepEqual(buildNativeShareData(metadata, '<svg/>', 'chart.svg', {
+    File: FakeFile,
+    canShare() { throw new Error('capability unavailable'); },
+  }), metadata);
+  assert.deepEqual(buildNativeShareData(metadata, '<svg/>', 'chart.svg', {
+    File: class { constructor() { throw new Error('file unavailable'); } },
+    canShare() { return true; },
+  }), metadata);
 });
 
 
@@ -143,4 +189,27 @@ test('reports failure when neither clipboard strategy copies', async () => {
 
   assert.equal(await copyText('data', { document }), false);
   assert.equal(await copyText('data', {}), false);
+});
+
+
+test('reports failure and removes the fallback textarea when selection throws', async () => {
+  const events = [];
+  const area = {
+    value: '',
+    setAttribute() {},
+    select() { events.push('select'); throw new Error('selection unavailable'); },
+    remove() { events.push('remove'); },
+  };
+  const document = {
+    body: { append() { events.push('append'); } },
+    createElement() { return area; },
+    execCommand() { throw new Error('must not be reached'); },
+  };
+  let copied;
+
+  await assert.doesNotReject(async () => {
+    copied = await copyText('data', { document });
+  });
+  assert.equal(copied, false);
+  assert.deepEqual(events, ['append', 'select', 'remove']);
 });

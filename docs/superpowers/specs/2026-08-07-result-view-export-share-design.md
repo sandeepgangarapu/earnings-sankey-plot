@@ -25,7 +25,7 @@ The Chart mode remains the default whenever a result is generated or the sample 
 - X.
 - Facebook.
 
-Social-network links share the current page URL with concise prepared text containing the company, ticker, fiscal year, and period. They do not claim to attach the generated chart because those services do not accept arbitrary local SVG data through share URLs.
+Social-network links share the current page URL. X also receives concise prepared text containing the company, ticker, fiscal year, and period; LinkedIn and Facebook derive their preview from the shared page because their composer URLs do not accept custom post text. The controls do not claim to attach the generated chart because those services do not accept arbitrary local SVG data through share URLs.
 
 Native Share will attempt to include a generated SVG file when the browser supports file sharing; otherwise it shares the title, prepared text, and current page URL. The menu closes after an action, when clicking outside it, or when pressing Escape.
 

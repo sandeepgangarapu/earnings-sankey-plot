@@ -1,4 +1,5 @@
 import {
+  buildNativeShareData,
   buildShareMetadata,
   buildSocialShareUrls,
   buildStandaloneHtml,
@@ -83,6 +84,11 @@ function safeSourceUrl(value) {
 
 function showResult(result) {
   state.result = result;
+  clearTimeout(state.feedbackTimer);
+  document.querySelectorAll('[data-copy-label]').forEach((item) => {
+    item.textContent = item.dataset.copyLabel;
+    delete item.dataset.copyLabel;
+  });
   setBusy(false);
   errorBox.hidden = true;
   emptyState.hidden = true;
@@ -182,7 +188,12 @@ function announce(message) {
 
 async function handleCopy(button, content, kind) {
   if (!state.result) return;
-  const copied = await copyText(content(), { clipboard: navigator.clipboard, document });
+  let copied = false;
+  try {
+    copied = await copyText(content(), { clipboard: navigator.clipboard, document });
+  } catch {
+    // Unexpected browser API failures use the same truthful failure feedback.
+  }
   clearTimeout(state.feedbackTimer);
   document.querySelectorAll('[data-copy-label]').forEach((item) => {
     item.textContent = item.dataset.copyLabel;
@@ -245,18 +256,18 @@ document.querySelectorAll('#share-menu a').forEach((link) => {
 
 nativeShare.addEventListener('click', async () => {
   if (!state.result || typeof navigator.share !== 'function') return;
-  const metadata = buildShareMetadata(state.result.statement, window.location.href);
-  const shareData = { ...metadata };
-  if (typeof File === 'function' && typeof navigator.canShare === 'function') {
-    const file = new File(
-      [state.result.svg],
-      statementFilename(state.result.statement, 'svg'),
-      { type: 'image/svg+xml' },
-    );
-    if (navigator.canShare({ files: [file] })) shareData.files = [file];
-  }
   closeShareMenu();
   try {
+    const metadata = buildShareMetadata(state.result.statement, window.location.href);
+    const shareData = buildNativeShareData(
+      metadata,
+      state.result.svg,
+      statementFilename(state.result.statement, 'svg'),
+      {
+        File: typeof File === 'function' ? File : null,
+        canShare: typeof navigator.canShare === 'function' ? navigator.canShare.bind(navigator) : null,
+      },
+    );
     await navigator.share(shareData);
     announce('Shared.');
   } catch (error) {

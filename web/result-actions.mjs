@@ -63,6 +63,21 @@ export function buildSocialShareUrls(metadata) {
 }
 
 
+export function buildNativeShareData(metadata, svg, filename, environment = {}) {
+  if (typeof environment.File !== 'function' || typeof environment.canShare !== 'function') {
+    return { ...metadata };
+  }
+
+  try {
+    const file = new environment.File([svg], filename, { type: 'image/svg+xml' });
+    const candidate = { ...metadata, files: [file] };
+    return environment.canShare(candidate) ? candidate : { ...metadata };
+  } catch {
+    return { ...metadata };
+  }
+}
+
+
 export function selectResultMode(requestedMode, tabs, panels) {
   const modes = Array.from(tabs, (tab) => tab.dataset.resultMode);
   const mode = modes.includes(requestedMode) ? requestedMode : (modes.includes('chart') ? 'chart' : modes[0]);
@@ -93,16 +108,17 @@ export async function copyText(text, environment = {}) {
   const documentRef = environment.document;
   if (!documentRef?.body || !documentRef.createElement || !documentRef.execCommand) return false;
 
-  const textarea = documentRef.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', '');
-  documentRef.body.append(textarea);
-  textarea.select();
+  let textarea = null;
   try {
+    textarea = documentRef.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    documentRef.body.append(textarea);
+    textarea.select();
     return Boolean(documentRef.execCommand('copy'));
   } catch {
     return false;
   } finally {
-    textarea.remove();
+    try { textarea?.remove(); } catch { /* Cleanup failure must not mask copy status. */ }
   }
 }
